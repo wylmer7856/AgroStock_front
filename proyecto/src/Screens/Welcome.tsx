@@ -1,277 +1,255 @@
 import React, { useState, useEffect } from "react";
+import './Welcome.css';
 
-const Welcome: React.FC = () => {
+interface WelcomeProps {
+  onNavigateToLogin?: () => void;
+  onNavigateToRegister?: () => void;
+}
+
+const Welcome: React.FC<WelcomeProps> = ({ onNavigateToLogin, onNavigateToRegister }) => {
   const [productos, setProductos] = useState<{ id: number; nombre: string; precio: number; imagen: string }[]>([]);
 
   useEffect(() => {
     const nuevosProductos = [
-      { id: 1, nombre: "Semillas de Maíz", precio: 20000, imagen: "https://via.placeholder.com/150" },
-      { id: 2, nombre: "Fertilizante Orgánico", precio: 35000, imagen: "https://via.placeholder.com/150" },
-      { id: 3, nombre: "Tractor Mini", precio: 2000000, imagen: "https://via.placeholder.com/150" },
+      { id: 1, nombre: "Semillas de Maíz Premium", precio: 20000, imagen: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=300&h=200&fit=crop" },
+      { id: 2, nombre: "Fertilizante Orgánico", precio: 35000, imagen: "https://images.unsplash.com/photo-1586771107445-d3ca888129ce?w=300&h=200&fit=crop" },
+      { id: 3, nombre: "Tractor Mini Agrícola", precio: 2000000, imagen: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=300&h=200&fit=crop" },
+      { id: 4, nombre: "Sistema de Riego", precio: 450000, imagen: "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop" },
+      { id: 5, nombre: "Herramientas Agrícolas", precio: 85000, imagen: "https://images.unsplash.com/photo-1586771107445-d3ca888129ce?w=300&h=200&fit=crop" },
+      { id: 6, nombre: "Invernadero Modular", precio: 1200000, imagen: "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=300&h=200&fit=crop" },
     ];
     setProductos(nuevosProductos);
   }, []);
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", background: "#f9fafb" }}>
-      {/* 🔹 NAVBAR */}
-      <nav style={styles.navbar}>
-        <div style={styles.logo}>🌾 AGROSTOCK</div>
-        <ul style={styles.navLinks}>
-          <li>Marketplace</li>
-          <li>Nosotros</li>
-          <li>Login</li>
-          <li style={styles.registerBtn}>Registrar</li>
-        </ul>
+    <div className="welcome-container">
+      {/* 🔹 NAVBAR MEJORADO */}
+      <nav className="navbar">
+        <div className="navbar-content">
+          <div className="logo">
+            <span className="logo-icon">🌾</span>
+            <span className="logo-text">AGROSTOCK</span>
+          </div>
+          <ul className="nav-links">
+            <li className="nav-item">Marketplace</li>
+            <li className="nav-item">Nosotros</li>
+            <li className="nav-item">Contacto</li>
+            <li className="nav-item" onClick={onNavigateToLogin}>Login</li>
+            <li className="nav-item register-btn" onClick={onNavigateToRegister}>Registrar</li>
+          </ul>
+        </div>
       </nav>
 
-      {/* 🔹 CARRUSEL */}
-      <section style={styles.carousel}>
-        <div style={styles.carouselContainer}>
-          <div style={styles.slide}>
-            <img src="https://picsum.photos/1200/500" alt="Slide 1" style={styles.slideImg} />
-            <div style={styles.textOverlay}>
-              <h1 style={{ fontSize: "3rem", marginBottom: "10px", fontWeight: "bold" }}>🌱 Bienvenido a Agrostock</h1>
-              <p style={{ fontSize: "1.2rem" }}>Innovación y calidad para el campo colombiano</p>
+      {/* 🔹 HERO SECTION MEJORADO */}
+      <section className="hero-section">
+        <div className="hero-content">
+          <div className="hero-text">
+            <h1 className="hero-title">
+              <span className="hero-icon">🌱</span>
+              Bienvenido a AgroStock
+            </h1>
+            <p className="hero-subtitle">Innovación y calidad para el campo colombiano</p>
+            <p className="hero-description">
+              Conectamos agricultores con las mejores herramientas, semillas y tecnología 
+              para maximizar la productividad y sostenibilidad de sus cultivos.
+            </p>
+            <div className="hero-buttons">
+              <button className="btn-primary" onClick={onNavigateToRegister}>
+                Comenzar Ahora
+              </button>
+              <button className="btn-secondary" onClick={onNavigateToLogin}>
+                Iniciar Sesión
+              </button>
+            </div>
+          </div>
+          <div className="hero-image">
+            <img 
+              src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&h=400&fit=crop" 
+              alt="Agricultura moderna" 
+              className="hero-img"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 🔹 CATEGORÍAS MEJORADAS */}
+      <section className="categories-section">
+        <div className="container">
+          <h2 className="section-title">Nuestras Categorías</h2>
+          <p className="section-subtitle">Encuentra todo lo que necesitas para tu campo</p>
+          <div className="categories-grid">
+            <div className="category-card">
+              <div className="category-icon">🌾</div>
+              <h3 className="category-title">Semillas</h3>
+              <p className="category-description">Variedades premium para máximo rendimiento</p>
+            </div>
+            <div className="category-card">
+              <div className="category-icon">🧪</div>
+              <h3 className="category-title">Fertilizantes</h3>
+              <p className="category-description">Nutrientes orgánicos y químicos</p>
+            </div>
+            <div className="category-card">
+              <div className="category-icon">🚜</div>
+              <h3 className="category-title">Maquinaria</h3>
+              <p className="category-description">Equipos modernos para el campo</p>
+            </div>
+            <div className="category-card">
+              <div className="category-icon">🛠️</div>
+              <h3 className="category-title">Herramientas</h3>
+              <p className="category-description">Accesorios y herramientas especializadas</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 🔹 CATEGORÍAS */}
-      <section style={styles.section}>
-        <h2 style={{ fontSize: "2.5rem", color: "#567D46", marginBottom: "40px" }}>Categorías</h2>
-        <div style={styles.categories}>
-          <div style={styles.card}>
-            <div style={{ fontSize: "2rem", marginBottom: "10px" }}>🌾</div>
-            <div style={{ fontWeight: "bold", fontSize: "1.2rem" }}>Semillas</div>
-          </div>
-          <div style={styles.card}>
-            <div style={{ fontSize: "2rem", marginBottom: "10px" }}>🧪</div>
-            <div style={{ fontWeight: "bold", fontSize: "1.2rem" }}>Fertilizantes</div>
-          </div>
-          <div style={styles.card}>
-            <div style={{ fontSize: "2rem", marginBottom: "10px" }}>🚜</div>
-            <div style={{ fontWeight: "bold", fontSize: "1.2rem" }}>Maquinaria</div>
-          </div>
-          <div style={styles.card}>
-            <div style={{ fontSize: "2rem", marginBottom: "10px" }}>🛠️</div>
-            <div style={{ fontWeight: "bold", fontSize: "1.2rem" }}>Accesorios</div>
+      {/* 🔹 PRODUCTOS DESTACADOS */}
+      <section className="products-section">
+        <div className="container">
+          <h2 className="section-title">Productos Destacados</h2>
+          <p className="section-subtitle">Los más vendidos esta temporada</p>
+          <div className="products-grid">
+            {productos.map((producto) => (
+              <div key={producto.id} className="product-card">
+                <div className="product-image-container">
+                  <img src={producto.imagen} alt={producto.nombre} className="product-image" />
+                  <div className="product-badge">Nuevo</div>
+                </div>
+                <div className="product-info">
+                  <h3 className="product-name">{producto.nombre}</h3>
+                  <p className="product-price">${producto.precio.toLocaleString()}</p>
+                  <button className="product-button">Agregar al carrito</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* 🔹 PRODUCTOS NUEVOS */}
-      <section style={styles.section}>
-        <h2 style={{ fontSize: "2.5rem", color: "#567D46", marginBottom: "40px" }}>Productos Nuevos</h2>
-        <div style={styles.products}>
-          {productos.map((p) => (
-            <div key={p.id} style={styles.productCard}>
-              <img src={p.imagen} alt={p.nombre} style={styles.productImg} />
-              <h4 style={{ color: "#2d3748", marginBottom: "5px" }}>{p.nombre}</h4>
-              <p style={{ color: "#567D46", fontWeight: "bold", fontSize: "1.2rem" }}>
-                ${p.precio.toLocaleString()}
+      {/* 🔹 MISIÓN Y VISIÓN MEJORADAS */}
+      <section className="mission-vision-section">
+        <div className="container">
+          <div className="mission-card">
+            <div className="mission-content">
+              <div className="mission-text">
+                <h2 className="mission-title">Nuestra Misión</h2>
+                <p className="mission-description">
+                  En <strong>AgroStock</strong> nos dedicamos a ofrecer soluciones innovadoras y accesibles 
+                  para el campo, brindando a los agricultores insumos y tecnología de calidad que potencien 
+                  la productividad y sostenibilidad de sus cultivos.
+                </p>
+                <div className="mission-features">
+                  <div className="feature">
+                    <span className="feature-icon">✅</span>
+                    <span>Calidad garantizada</span>
+                  </div>
+                  <div className="feature">
+                    <span className="feature-icon">🚚</span>
+                    <span>Envío rápido</span>
+                  </div>
+                  <div className="feature">
+                    <span className="feature-icon">💬</span>
+                    <span>Soporte 24/7</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mission-image">
+                <img 
+                  src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&h=400&fit=crop" 
+                  alt="Misión AgroStock" 
+                  className="mission-img"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="vision-card">
+            <div className="vision-content">
+              <div className="vision-image">
+                <img 
+                  src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=500&h=400&fit=crop" 
+                  alt="Visión AgroStock" 
+                  className="vision-img"
+                />
+              </div>
+              <div className="vision-text">
+                <h2 className="vision-title">Nuestra Visión</h2>
+                <p className="vision-description">
+                  Ser la plataforma líder en comercio agropecuario en Latinoamérica, conectando a productores, 
+                  distribuidores y clientes en un ecosistema digital confiable, sostenible y próspero.
+                </p>
+                <div className="vision-stats">
+                  <div className="stat">
+                    <span className="stat-number">10K+</span>
+                    <span className="stat-label">Productos</span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-number">5K+</span>
+                    <span className="stat-label">Clientes</span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-number">50+</span>
+                    <span className="stat-label">Ciudades</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 🔹 FOOTER MEJORADO */}
+      <footer className="footer">
+        <div className="container">
+          <div className="footer-content">
+            <div className="footer-section">
+              <div className="footer-logo">
+                <span className="footer-icon">🌾</span>
+                <span className="footer-text">AGROSTOCK</span>
+              </div>
+              <p className="footer-description">
+                Conectando el campo con la tecnología para un futuro más sostenible.
               </p>
-              <button style={styles.addButton}>Agregar al carrito</button>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 🔹 MISIÓN Y VISIÓN */}
-      <section style={styles.misionVisionSection}>
-        <div style={styles.misionVisionContainer}>
-          <div style={styles.misionCard}>
-            <div style={styles.imageContainer}>
-              <img src="https://picsum.photos/500/400" alt="Misión" style={styles.misionVisionImg} />
+            <div className="footer-section">
+              <h3 className="footer-title">Enlaces Rápidos</h3>
+              <ul className="footer-links">
+                <li><a href="#marketplace">Marketplace</a></li>
+                <li><a href="#nosotros">Nosotros</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+                <li><a href="#ayuda">Ayuda</a></li>
+              </ul>
             </div>
-            <div style={styles.textContainer}>
-              <h2 style={{ color: "#567D46", fontSize: "2rem", marginBottom: "20px" }}>Nuestra Misión</h2>
-              <p style={{ fontSize: "1.1rem", lineHeight: "1.8", color: "#4a5568" }}>
-                En <b>Agrostock</b> nos dedicamos a ofrecer soluciones innovadoras y accesibles para el campo,
-                brindando a los agricultores insumos y tecnología de calidad que potencien la productividad
-                y sostenibilidad de sus cultivos.
-              </p>
+            <div className="footer-section">
+              <h3 className="footer-title">Categorías</h3>
+              <ul className="footer-links">
+                <li><a href="#semillas">Semillas</a></li>
+                <li><a href="#fertilizantes">Fertilizantes</a></li>
+                <li><a href="#maquinaria">Maquinaria</a></li>
+                <li><a href="#herramientas">Herramientas</a></li>
+              </ul>
             </div>
-          </div>
-
-          <div style={styles.visionCard}>
-            <div style={styles.textContainer}>
-              <h2 style={{ color: "#567D46", fontSize: "2rem", marginBottom: "20px" }}>Nuestra Visión</h2>
-              <p style={{ fontSize: "1.1rem", lineHeight: "1.8", color: "#4a5568" }}>
-                Ser la plataforma líder en comercio agropecuario en Latinoamérica, conectando a productores,
-                distribuidores y clientes en un ecosistema digital confiable, sostenible y próspero.
-              </p>
-            </div>
-            <div style={styles.imageContainer}>
-              <img src="https://picsum.photos/500/401" alt="Visión" style={styles.misionVisionImg} />
+            <div className="footer-section">
+              <h3 className="footer-title">Contacto</h3>
+              <div className="contact-info">
+                <p>📧 info@agrostock.com</p>
+                <p>📞 +57 (1) 234-5678</p>
+                <p>📍 Bogotá, Colombia</p>
+              </div>
             </div>
           </div>
+          <div className="footer-bottom">
+            <p>© 2025 AgroStock - Todos los derechos reservados</p>
+            <div className="social-links">
+              <a href="#" className="social-link">📘</a>
+              <a href="#" className="social-link">📷</a>
+              <a href="#" className="social-link">🐦</a>
+            </div>
+          </div>
         </div>
-      </section>
-
-      {/* 🔹 FOOTER */}
-      <footer style={styles.footer}>
-        <p>© 2025 Agrostock - Todos los derechos reservados 🌾</p>
-        <p style={{ fontSize: "0.9rem", marginTop: "10px" }}>Conectando el campo con la tecnología</p>
       </footer>
     </div>
   );
 };
 
-const styles: { [key: string]: React.CSSProperties } = {
-  navbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background: "rgba(86, 125, 70, 0.9)",
-    color: "#fff",
-    padding: "15px 40px",
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    backdropFilter: "blur(10px)",
-  },
-  logo: {
-    fontWeight: "bold",
-    fontSize: "24px",
-  },
-  navLinks: {
-    display: "flex",
-    listStyle: "none",
-    gap: "30px",
-    cursor: "pointer",
-    alignItems: "center",
-  },
-  registerBtn: {
-    background: "#8FB585",
-    padding: "8px 20px",
-    borderRadius: "20px",
-    fontWeight: "bold",
-  },
-  carousel: {
-    position: "relative",
-    textAlign: "center",
-    marginTop: "60px",
-  },
-  carouselContainer: {
-    width: "100%",
-  },
-  slide: {
-    position: "relative",
-  },
-  slideImg: {
-    width: "100%",
-    height: "500px",
-    objectFit: "cover",
-  },
-  textOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    color: "white",
-    textAlign: "center",
-    backgroundColor: "rgba(86, 125, 70, 0.7)",
-    padding: "30px 50px",
-    borderRadius: "15px",
-    backdropFilter: "blur(5px)",
-  },
-  section: {
-    padding: "60px 40px",
-    textAlign: "center",
-  },
-  categories: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "30px",
-    marginTop: "20px",
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-  card: {
-    background: "#fff",
-    padding: "40px",
-    borderRadius: "15px",
-    cursor: "pointer",
-    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-    transition: "transform 0.3s, box-shadow 0.3s",
-    border: "2px solid #E5E5E5",
-  },
-  products: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "30px",
-    flexWrap: "wrap",
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-  productCard: {
-    width: "250px",
-    border: "2px solid #E5E5E5",
-    borderRadius: "15px",
-    padding: "20px",
-    background: "#fff",
-    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-    transition: "transform 0.3s",
-  },
-  productImg: {
-    width: "100%",
-    borderRadius: "10px",
-    marginBottom: "15px",
-  },
-  addButton: {
-    background: "#567D46",
-    color: "#fff",
-    border: "none",
-    padding: "10px 20px",
-    borderRadius: "20px",
-    cursor: "pointer",
-    marginTop: "10px",
-    fontWeight: "bold",
-    width: "100%",
-  },
-  misionVisionSection: {
-    background: "#fff",
-    padding: "80px 20px",
-  },
-  misionVisionContainer: {
-    maxWidth: "1400px",
-    margin: "0 auto",
-  },
-  misionCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "60px",
-    marginBottom: "80px",
-  },
-  visionCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "60px",
-    flexDirection: "row",
-  },
-  imageContainer: {
-    flex: 1,
-  },
-  textContainer: {
-    flex: 1,
-    textAlign: "left",
-  },
-  misionVisionImg: {
-    width: "100%",
-    borderRadius: "20px",
-    boxShadow: "0 8px 16px rgba(0,0,0,0.15)",
-  },
-  footer: {
-    background: "#567D46",
-    color: "#fff",
-    textAlign: "center",
-    padding: "30px",
-    marginTop: "0",
-  },
-};
 
 export default Welcome;
