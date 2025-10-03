@@ -84,6 +84,7 @@ const App: React.FC = () => {
           <Login 
             onLogin={handleLogin}
             onSwitchToRegister={navigateToRegister}
+            onBackToHome={navigateToWelcome}
           />
         );
       
@@ -92,6 +93,7 @@ const App: React.FC = () => {
           <Registrar 
             onRegister={handleRegister}
             onSwitchToLogin={navigateToLogin}
+            onBackToHome={navigateToWelcome}
           />
         );
       
@@ -127,15 +129,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Navegación de breadcrumb */}
+      {/* Navegación de breadcrumb - SOLO INDICADOR */}
       {currentView !== 'welcome' && (
         <div className="breadcrumb-nav">
-          <button 
-            className="breadcrumb-btn"
-            onClick={navigateToWelcome}
-          >
-            ← Volver al Inicio
-          </button>
           <div className="breadcrumb-steps">
             <span className={`step ${currentView === 'login' ? 'active' : ''}`}>
               {currentView === 'login' ? '🔐 Login' : 'Login'}

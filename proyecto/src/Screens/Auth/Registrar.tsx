@@ -14,9 +14,10 @@ interface RegisterFormData {
 interface RegistrarProps {
   onRegister?: (formData: RegisterFormData) => void;
   onSwitchToLogin?: () => void;
+  onBackToHome?: () => void;
 }
 
-const Registrar: React.FC<RegistrarProps> = ({ onRegister, onSwitchToLogin }) => {
+const Registrar: React.FC<RegistrarProps> = ({ onRegister, onSwitchToLogin, onBackToHome }) => {
   const [formData, setFormData] = useState<RegisterFormData>({
     nombre: '',
     apellido: '',
@@ -141,6 +142,15 @@ const Registrar: React.FC<RegistrarProps> = ({ onRegister, onSwitchToLogin }) =>
 
   return (
     <div className="register-container">
+      {/* Botón para volver al inicio */}
+      <button 
+        className="back-to-home-btn"
+        onClick={onBackToHome}
+        type="button"
+      >
+        ← Volver al Inicio
+      </button>
+      
       <div className="register-card">
         <div className="register-header">
           <h1 className="register-title">AgroStock</h1>

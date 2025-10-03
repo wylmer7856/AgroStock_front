@@ -9,9 +9,10 @@ interface LoginFormData {
 interface LoginProps {
   onLogin?: (formData: LoginFormData) => void;
   onSwitchToRegister?: () => void;
+  onBackToHome?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister, onBackToHome }) => {
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
@@ -91,6 +92,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
 
   return (
     <div className="login-container">
+      {/* Botón para volver al inicio */}
+      <button 
+        className="back-to-home-btn"
+        onClick={onBackToHome}
+        type="button"
+      >
+        ← Volver al Inicio
+      </button>
+      
       <div className="login-card">
         <div className="login-header">
           <h1 className="login-title">AgroStock</h1>
