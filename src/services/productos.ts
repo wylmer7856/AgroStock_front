@@ -1,0 +1,141 @@
+// 🛍️ SERVICIO DE PRODUCTOS
+
+import apiService from './api';
+import type { 
+  Producto, 
+  ProductoDetallado,
+  FiltrosProductos,
+  ApiResponse 
+} from '../types';
+
+class ProductosService {
+  
+  // ===== LISTAR PRODUCTOS =====
+  async listarProductos(filtros?: FiltrosProductos): Promise<ApiResponse<Producto[]>> {
+    try {
+      const queryString = filtros ? apiService.buildQueryString(filtros) : '';
+      const response = await apiService.get<Producto[]>(
+        `/productos${queryString}`
+      );
+      
+      if (response.success && Array.isArray(response.data)) {
+        return {
+          success: response.success,
+          data: response.data,
+          message: response.message,
+          pagination: response.pagination
+        };
+      }
+      
+      return {
+        success: response.success,
+        data: [],
+        message: response.message || 'No se encontraron productos',
+      };
+    } catch (error) {
+      console.error('Error listando productos:', error);
+      throw error;
+    }
+  }
+
+  // ===== OBTENER PRODUCTO POR ID =====
+  async obtenerProducto(id: number): Promise<ApiResponse<ProductoDetallado>> {
+    try {
+      const response = await apiService.get<ProductoDetallado>(
+        `/productos/${id}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Error obteniendo producto:', error);
+      throw error;
+    }
+  }
+
+  // ===== CREAR PRODUCTO =====
+  async crearProducto(productoData: Partial<Producto>): Promise<ApiResponse<Producto>> {
+    try {
+      const response = await apiService.post<Producto>(
+        `/productos`,
+        productoData
+      );
+      return response;
+    } catch (error) {
+      console.error('Error creando producto:', error);
+      throw error;
+    }
+  }
+
+  // ===== ACTUALIZAR PRODUCTO =====
+  async actualizarProducto(id: number, productoData: Partial<Producto>): Promise<ApiResponse<Producto>> {
+    try {
+      const response = await apiService.put<Producto>(
+        `/productos/${id}`,
+        productoData
+      );
+      return response;
+    } catch (error) {
+      console.error('Error actualizando producto:', error);
+      throw error;
+    }
+  }
+
+  // ===== ELIMINAR PRODUCTO =====
+  async eliminarProducto(id: number): Promise<ApiResponse> {
+    try {
+      const response = await apiService.delete(
+        `/productos/${id}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Error eliminando producto:', error);
+      throw error;
+    }
+  }
+
+  // ===== BUSCAR PRODUCTOS =====
+  async buscarProductos(termino: string, filtros?: FiltrosProductos): Promise<ApiResponse<Producto[]>> {
+    try {
+      const queryParams = { ...filtros, nombre: termino };
+      const queryString = apiService.buildQueryString(queryParams);
+      const response = await apiService.get<Producto[]>(
+        `/productos/buscar${queryString}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Error buscando productos:', error);
+      throw error;
+    }
+  }
+
+  // ===== OBTENER PRODUCTOS POR USUARIO/PRODUCTOR =====
+  async obtenerProductosPorUsuario(idUsuario: number): Promise<ApiResponse<Producto[]>> {
+    try {
+      const response = await apiService.get<Producto[]>(
+        `/productos/usuario/${idUsuario}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Error obteniendo productos del usuario:', error);
+      throw error;
+    }
+  }
+
+  // ===== OBTENER PRODUCTOS DISPONIBLES =====
+  async obtenerProductosDisponibles(filtros?: FiltrosProductos): Promise<ApiResponse<Producto[]>> {
+    try {
+      const queryParams = { ...filtros, disponible: true };
+      const queryString = apiService.buildQueryString(queryParams);
+      const response = await apiService.get<Producto[]>(
+        `/productos/disponibles${queryString}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Error obteniendo productos disponibles:', error);
+      throw error;
+    }
+  }
+}
+
+export const productosService = new ProductosService();
+export default productosService;
+
