@@ -3,6 +3,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import type { AppView } from '../types';
+import './Navigation.css';
 
 // ===== TIPOS =====
 interface NavigationItem {

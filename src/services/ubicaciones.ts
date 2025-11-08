@@ -68,3 +68,4 @@ class UbicacionesService {
 export const ubicacionesService = new UbicacionesService();
 export default ubicacionesService;
 
+

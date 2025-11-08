@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, Badge, Loading, Toast } from '../../components/ReusableComponents';
 import AgroStockLogo from '../../components/AgroStockLogo';
-import { productosService } from '../../services';
-import { pedidosService } from '../../services';
-import type { Producto } from '../../types';
+import { productosService, pedidosService, productoresService } from '../../services';
+import type { Producto, ProductorProfile } from '../../types';
+import PerfilProductor from './PerfilProductor';
 import './ProductorDashboard.css';
 
 interface ProductorDashboardProps {
@@ -15,7 +15,8 @@ interface ProductorDashboardProps {
 
 export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
-  const [currentView, setCurrentView] = useState<'overview' | 'productos' | 'pedidos' | 'nuevo-producto'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'productos' | 'pedidos' | 'nuevo-producto' | 'perfil'>('overview');
+  const [perfilProductor, setPerfilProductor] = useState<ProductorProfile | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,10 +29,12 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
   const cargarDatos = async () => {
     try {
       setLoading(true);
-      if (user?.id) {
-        const [productosRes, pedidosRes] = await Promise.all([
-          productosService.obtenerProductosPorUsuario(user.id),
-          pedidosService.obtenerMisPedidos('productor')
+      const userId = user?.id_usuario || user?.id;
+      if (userId) {
+        const [productosRes, pedidosRes, perfilRes] = await Promise.all([
+          productosService.obtenerProductosPorUsuario(userId),
+          pedidosService.obtenerMisPedidos('productor', userId),
+          productoresService.obtenerMiPerfil()
         ]);
         
         if (productosRes.success && productosRes.data) {
@@ -40,6 +43,10 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
         
         if (pedidosRes.success && pedidosRes.data) {
           setPedidos(pedidosRes.data);
+        }
+
+        if (perfilRes.success && perfilRes.data) {
+          setPerfilProductor(perfilRes.data);
         }
       }
     } catch (error) {
@@ -89,7 +96,44 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
 
     return (
       <div className="productor-overview">
-        <h2>Resumen</h2>
+        <div className="overview-header">
+          <h2>📊 Resumen</h2>
+          {!perfilProductor && (
+            <Button onClick={() => setCurrentView('perfil')} variant="primary">
+              ✏️ Completar Perfil
+            </Button>
+          )}
+        </div>
+
+        {perfilProductor && (
+          <Card className="perfil-resumen">
+            <h3>🌾 {perfilProductor.nombre_finca || 'Mi Finca'}</h3>
+            <div className="perfil-info-grid">
+              <div>
+                <strong>Tipo:</strong> {perfilProductor.tipo_productor || 'No especificado'}
+              </div>
+              {perfilProductor.departamento_nombre && (
+                <div>
+                  <strong>Ubicación:</strong> {perfilProductor.vereda ? `${perfilProductor.vereda}, ` : ''}
+                  {perfilProductor.ciudad_nombre}, {perfilProductor.departamento_nombre}
+                </div>
+              )}
+              {perfilProductor.numero_registro_ica && (
+                <div>
+                  <strong>Registro ICA:</strong> {perfilProductor.numero_registro_ica}
+                </div>
+              )}
+              {perfilProductor.certificaciones && (
+                <div>
+                  <strong>Certificaciones:</strong> {perfilProductor.certificaciones}
+                </div>
+              )}
+            </div>
+            <Button onClick={() => setCurrentView('perfil')} variant="secondary" size="small">
+              Editar Perfil
+            </Button>
+          </Card>
+        )}
         
         <div className="stats-grid">
           <Card className="stat-card">
@@ -124,7 +168,7 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
               <Card key={producto.id_producto} className="producto-card">
                 <div className="producto-info">
                   <h4>{producto.nombre}</h4>
-                  <p>Stock: {producto.stock} {producto.unidadMedida}</p>
+                  <p>Stock: {producto.stock} {producto.unidad_medida}</p>
                   <p>Precio: ${producto.precio?.toLocaleString()}</p>
                 </div>
                 <Badge 
@@ -156,9 +200,9 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
         <div className="productos-grid">
           {productos.map(producto => (
             <Card key={producto.id_producto} className="producto-card-detalle">
-              {producto.imagenPrincipal && (
+              {producto.imagen_principal && (
                 <img 
-                  src={producto.imagenPrincipal} 
+                  src={producto.imagen_principal} 
                   alt={producto.nombre}
                   className="producto-imagen"
                 />
@@ -168,8 +212,8 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
                 <p>{producto.descripcion}</p>
                 <div className="producto-meta">
                   <span>💰 ${producto.precio?.toLocaleString()}</span>
-                  <span>📦 Stock: {producto.stock}</span>
-                  <span>⚠️ Mínimo: {producto.stockMinimo}</span>
+                  <span>📦 Stock: {producto.stock} {producto.unidad_medida}</span>
+                  <span>⚠️ Mínimo: {producto.stock_minimo}</span>
                 </div>
                 <div className="producto-actions">
                   <Button variant="secondary" size="small">
@@ -205,11 +249,13 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
               <div className="pedido-header">
                 <div>
                   <h3>Pedido #{pedido.id_pedido}</h3>
-                  <p>Fecha: {new Date(pedido.fecha).toLocaleDateString()}</p>
+                  <p>Fecha: {new Date(pedido.fecha_pedido || Date.now()).toLocaleDateString()}</p>
                 </div>
                 <Badge variant={
-                  pedido.estado === 'comprado' ? 'success' :
-                  pedido.estado === 'pendiente' ? 'warning' : 'info'
+                  pedido.estado === 'entregado' ? 'success' :
+                  pedido.estado === 'en_camino' ? 'info' :
+                  pedido.estado === 'confirmado' ? 'warning' :
+                  pedido.estado === 'pendiente' ? 'warning' : 'default'
                 }>
                   {pedido.estado}
                 </Badge>
@@ -217,8 +263,9 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
               
               <div className="pedido-info">
                 <p><strong>Total:</strong> ${pedido.total?.toLocaleString()}</p>
-                <p><strong>Dirección:</strong> {pedido.direccionEntrega}</p>
+                <p><strong>Dirección:</strong> {pedido.direccion_entrega}</p>
                 <p><strong>Método de pago:</strong> {pedido.metodo_pago}</p>
+                <p><strong>Estado pago:</strong> {pedido.estado_pago || 'pendiente'}</p>
               </div>
 
               {pedido.estado === 'pendiente' && (
@@ -236,6 +283,42 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
                     onClick={() => handleActualizarEstadoPedido(pedido.id_pedido, 'cancelado')}
                   >
                     ❌ Rechazar
+                  </Button>
+                </div>
+              )}
+              
+              {pedido.estado === 'confirmado' && (
+                <div className="pedido-actions">
+                  <Button 
+                    variant="info" 
+                    size="small"
+                    onClick={() => handleActualizarEstadoPedido(pedido.id_pedido, 'en_preparacion')}
+                  >
+                    📦 En Preparación
+                  </Button>
+                </div>
+              )}
+              
+              {pedido.estado === 'en_preparacion' && (
+                <div className="pedido-actions">
+                  <Button 
+                    variant="info" 
+                    size="small"
+                    onClick={() => handleActualizarEstadoPedido(pedido.id_pedido, 'en_camino')}
+                  >
+                    🚚 En Camino
+                  </Button>
+                </div>
+              )}
+              
+              {pedido.estado === 'en_camino' && (
+                <div className="pedido-actions">
+                  <Button 
+                    variant="success" 
+                    size="small"
+                    onClick={() => handleActualizarEstadoPedido(pedido.id_pedido, 'entregado')}
+                  >
+                    ✅ Marcar Entregado
                   </Button>
                 </div>
               )}
@@ -261,6 +344,17 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
     );
   };
 
+  const renderPerfil = () => {
+    return (
+      <PerfilProductor
+        onClose={() => {
+          setCurrentView('overview');
+          cargarDatos(); // Recargar datos después de guardar
+        }}
+      />
+    );
+  };
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'productos':
@@ -269,6 +363,8 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
         return renderPedidos();
       case 'nuevo-producto':
         return renderNuevoProducto();
+      case 'perfil':
+        return renderPerfil();
       case 'overview':
       default:
         return renderOverview();
@@ -293,6 +389,12 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
             onClick={() => setCurrentView('overview')}
           >
             📊 Resumen
+          </button>
+          <button
+            className={`nav-item ${currentView === 'perfil' ? 'active' : ''}`}
+            onClick={() => setCurrentView('perfil')}
+          >
+            🌾 Mi Perfil
           </button>
           <button
             className={`nav-item ${currentView === 'productos' ? 'active' : ''}`}
@@ -337,4 +439,5 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
 };
 
 export default ProductorDashboard;
+
 

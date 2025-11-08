@@ -21,9 +21,9 @@ class AdminService {
   async getUsuarios(filtros?: FiltrosUsuarios): Promise<ApiResponse<UsuarioAdmin[]>> {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
-      // ✅ Endpoint correcto del backend
-      const response = await apiService.get<{usuarios: UsuarioAdmin[], total: number}>(
-        `/usuarios${queryString}`
+      // ✅ Endpoint correcto del backend - AdminRouter
+      const response = await apiService.get<{usuarios: UsuarioAdmin[], total: number} | UsuarioAdmin[]>(
+        `/admin/usuarios${queryString}`
       );
       
       // Adaptar la respuesta según la estructura del backend
@@ -64,8 +64,9 @@ class AdminService {
   // Crear usuario manualmente
   async crearUsuario(userData: Partial<UsuarioAdmin>): Promise<ApiResponse<UsuarioAdmin>> {
     try {
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.post<UsuarioAdmin>(
-        `/usuarios/crear`,
+        `/admin/usuarios/crear`,
         userData
       );
       return response;
@@ -108,9 +109,9 @@ class AdminService {
   async getProductos(filtros?: FiltrosProductos): Promise<ApiResponse<ProductoDetallado[]>> {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
-      // ✅ Endpoint correcto del backend - Admin tiene endpoint específico
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.get<{productos: ProductoDetallado[], total: number} | ProductoDetallado[]>(
-        `/productos${queryString}`
+        `/admin/productos${queryString}`
       );
       
       // Adaptar respuesta según estructura del backend
@@ -158,9 +159,9 @@ class AdminService {
   async getReportes(filtros?: any): Promise<ApiResponse<Reporte[]>> {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
-      // ✅ Endpoint correcto del backend
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.get<{reportes: Reporte[], total: number} | Reporte[]>(
-        `/reportes${queryString}`
+        `/admin/reportes${queryString}`
       );
       
       // Adaptar respuesta
@@ -223,9 +224,9 @@ class AdminService {
   async getEstadisticasGenerales(periodo?: string): Promise<ApiResponse<EstadisticasGenerales>> {
     try {
       const queryString = periodo ? `?periodo=${periodo}` : '';
-      // ✅ Endpoint correcto del backend
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.get<EstadisticasGenerales>(
-        `/estadisticas${queryString}`
+        `/admin/estadisticas${queryString}`
       );
       
       // Adaptar respuesta según estructura del backend
@@ -251,9 +252,9 @@ class AdminService {
   // Obtener actividad reciente
   async getActividadReciente(): Promise<ApiResponse<ActividadReciente[]>> {
     try {
-      // ✅ Endpoint correcto del backend
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.get<{actividad: ActividadReciente[]} | ActividadReciente[]>(
-        `/actividad-reciente`
+        `/admin/actividad-reciente`
       );
       
       // Adaptar respuesta

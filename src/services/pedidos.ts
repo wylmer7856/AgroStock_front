@@ -9,15 +9,15 @@ export interface Pedido {
   id_pedido: number;
   id_consumidor: number;
   id_productor: number;
-  fecha: string;
-  estado: 'pendiente' | 'confirmado' | 'comprado' | 'cancelado' | 'enviado' | 'entregado';
   total: number;
-  direccionEntrega: string;
-  notas: string;
-  fecha_entrega_estimada: string;
-  metodo_pago: string;
-  fecha_creacion?: string;
-  fecha_actualizacion?: string;
+  estado: 'pendiente' | 'confirmado' | 'en_preparacion' | 'en_camino' | 'entregado' | 'cancelado';
+  direccion_entrega: string;
+  id_ciudad_entrega?: number | null;
+  metodo_pago: 'efectivo' | 'transferencia' | 'nequi' | 'daviplata' | 'pse' | 'tarjeta';
+  estado_pago?: 'pendiente' | 'pagado' | 'reembolsado';
+  notas?: string | null;
+  fecha_pedido?: string | null;
+  fecha_entrega?: string | null;
 }
 
 export interface DetallePedido {
@@ -26,10 +26,11 @@ export interface DetallePedido {
   id_producto: number;
   precio_unitario: number;
   cantidad: number;
-  Precio_total: string;
+  subtotal: number;
   producto?: {
     nombre: string;
-    imagenPrincipal?: string;
+    imagen_principal?: string;
+    descripcion?: string;
   };
 }
 
@@ -41,10 +42,10 @@ export interface CrearPedidoData {
     cantidad: number;
     precio_unitario: number;
   }>;
-  direccionEntrega: string;
+  direccion_entrega: string;
+  id_ciudad_entrega?: number;
   notas?: string;
-  fecha_entrega_estimada: string;
-  metodo_pago: string;
+  metodo_pago: 'efectivo' | 'transferencia' | 'nequi' | 'daviplata' | 'pse' | 'tarjeta';
 }
 
 class PedidosService {
@@ -123,10 +124,27 @@ class PedidosService {
   }
 
   // ===== OBTENER PEDIDOS DEL USUARIO ACTUAL =====
-  async obtenerMisPedidos(tipo: 'consumidor' | 'productor'): Promise<ApiResponse<Pedido[]>> {
+  async obtenerMisPedidos(tipo: 'consumidor' | 'productor', userId?: number): Promise<ApiResponse<Pedido[]>> {
     try {
-      const endpoint = tipo === 'consumidor' ? '/pedidos/mis-pedidos' : '/pedidos/mis-ventas';
-      const response = await apiService.get<Pedido[]>(endpoint);
+      // Obtener todos los pedidos (el backend filtra por usuario autenticado)
+      const response = await apiService.get<Pedido[]>('/pedidos');
+      
+      if (response.success && response.data && userId) {
+        // Filtrar según el tipo y el ID del usuario
+        const pedidosFiltrados = response.data.filter((pedido: Pedido) => {
+          if (tipo === 'consumidor') {
+            return pedido.id_consumidor === userId;
+          } else {
+            return pedido.id_productor === userId;
+          }
+        });
+        
+        return {
+          ...response,
+          data: pedidosFiltrados
+        };
+      }
+      
       return response;
     } catch (error) {
       console.error('Error obteniendo mis pedidos:', error);
@@ -137,4 +155,5 @@ class PedidosService {
 
 export const pedidosService = new PedidosService();
 export default pedidosService;
+
 

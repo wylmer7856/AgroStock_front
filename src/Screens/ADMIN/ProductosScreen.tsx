@@ -245,12 +245,12 @@ export const ProductosScreen: React.FC<ProductosScreenProps> = ({ onNavigate }) 
                     <div className="detail-item">
                       <span className="detail-label">Stock:</span>
                       <span className={`detail-value ${producto.stock === 0 ? 'out-of-stock' : ''}`}>
-                        {producto.stock} {producto.unidadMedida || 'unidades'}
+                        {producto.stock} {producto.unidad_medida}
                       </span>
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Stock mínimo:</span>
-                      <span className="detail-value">{producto.stockMinimo}</span>
+                      <span className="detail-value">{producto.stock_minimo}</span>
                     </div>
                   </div>
 

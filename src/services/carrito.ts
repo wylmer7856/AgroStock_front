@@ -6,22 +6,26 @@ import type {
 } from '../types';
 
 export interface ItemCarrito {
-  id_item?: number;
   id_producto: number;
   cantidad: number;
   precio_unitario: number;
+  precio_total: number;
+  disponible: boolean;
+  stock_actual: number;
   producto?: {
     nombre: string;
-    imagenPrincipal?: string;
+    imagen_principal?: string;
     stock: number;
     disponible: boolean;
   };
 }
 
 export interface Carrito {
+  id_usuario: number;
   items: ItemCarrito[];
-  total: number;
+  total_precio: number;
   total_items: number;
+  fecha_actualizacion: string;
 }
 
 export interface AgregarAlCarritoData {
@@ -102,13 +106,13 @@ class CarritoService {
 
   // ===== PROCESAR CHECKOUT =====
   async checkout(datosEntrega: {
-    direccionEntrega: string;
+    direccionEntrega: string; // El backend espera este nombre
+    id_ciudad_entrega?: number;
     notas?: string;
-    fecha_entrega_estimada: string;
-    metodo_pago: string;
-  }): Promise<ApiResponse<{ id_pedido: number; total: number }>> {
+    metodo_pago: 'efectivo' | 'transferencia' | 'nequi' | 'daviplata' | 'pse' | 'tarjeta';
+  }): Promise<ApiResponse<{ pedido_id: number; total_precio: number }>> {
     try {
-      const response = await apiService.post<{ id_pedido: number; total: number }>(
+      const response = await apiService.post<{ pedido_id: number; total_precio: number }>(
         '/cart/checkout',
         datosEntrega
       );
@@ -138,4 +142,5 @@ class CarritoService {
 
 export const carritoService = new CarritoService();
 export default carritoService;
+
 

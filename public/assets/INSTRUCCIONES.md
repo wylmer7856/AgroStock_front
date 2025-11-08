@@ -118,3 +118,6 @@ const productos = await loadJsonAsset('ejemplo-productos.json');
 - [SVGOMG](https://jakearchibald.github.io/svgomg/) - Optimizar SVG
 - [Favicon Generator](https://realfavicongenerator.net/) - Generar favicons
 
+
+
+

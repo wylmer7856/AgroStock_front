@@ -3,9 +3,47 @@
 import React, { useState, useEffect } from 'react';
 import { usePagination, useDebounce } from '../../hooks';
 import adminService from '../../services/admin';
+import { ubicacionesService } from '../../services';
 import { Card, Button, Input, Modal, Loading, Badge, Avatar, Toast } from '../../components/ReusableComponents';
-import type { UsuarioAdmin, FiltrosUsuarios } from '../../types';
+import type { UsuarioAdmin, FiltrosUsuarios, Ciudad } from '../../types';
 import './AdminScreens.css';
+
+// ===== FUNCIONES HELPER =====
+const formatearFecha = (fecha: string | null | undefined): string => {
+  if (!fecha) return 'N/A';
+  
+  try {
+    const date = new Date(fecha);
+    // Verificar que la fecha sea válida
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
+    // Formato: DD/MM/YYYY
+    return date.toLocaleDateString('es-CO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (error) {
+    return 'Fecha inválida';
+  }
+};
+
+const formatearTelefono = (telefono: string | null | undefined): string => {
+  if (!telefono) return 'N/A';
+  
+  // Remover espacios y caracteres especiales
+  const numero = telefono.replace(/\D/g, '');
+  
+  // Formato colombiano: +57 300 123 4567 o 300 123 4567
+  if (numero.length === 10) {
+    return `${numero.substring(0, 3)} ${numero.substring(3, 6)} ${numero.substring(6)}`;
+  } else if (numero.length === 12 && numero.startsWith('57')) {
+    return `+57 ${numero.substring(2, 5)} ${numero.substring(5, 8)} ${numero.substring(8)}`;
+  }
+  
+  return telefono;
+};
 
 interface UsuariosScreenProps {
   onNavigate: (view: string) => void;
@@ -121,8 +159,7 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
       {/* Header */}
       <div className="screen-header">
         <div className="header-content">
-          <h1>Gestión de Usuarios</h1>
-          <p>Administra todos los usuarios de la plataforma</p>
+          <h1>Usuarios</h1>
         </div>
         <div className="header-actions">
           <Button
@@ -130,7 +167,7 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
             icon="➕"
             onClick={() => setShowCreateModal(true)}
           >
-            Crear Usuario
+            + Crear Usuario
           </Button>
           <Button
             variant="secondary"
@@ -206,7 +243,7 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
 
       {/* Lista de usuarios */}
       <Card 
-        title={`Usuarios encontrados (${usuariosFiltrados.length})`}
+        title={`Usuarios (${usuariosFiltrados.length})`}
         className="usuarios-list-card"
       >
         {loading ? (
@@ -231,45 +268,30 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
           <div className="usuarios-table">
             {/* Header de la tabla */}
             <div className="table-header">
-              <div className="table-cell">Usuario</div>
-              <div className="table-cell">Contacto</div>
-              <div className="table-cell">Rol</div>
-              <div className="table-cell">Estado</div>
-              <div className="table-cell">Registro</div>
-              <div className="table-cell">Acciones</div>
+              <div className="table-cell-header">Contacto</div>
+              <div className="table-cell-header">Rol</div>
+              <div className="table-cell-header">Estado</div>
+              <div className="table-cell-header">Registro</div>
+              <div className="table-cell-header">Acciones</div>
             </div>
             
             {/* Filas de usuarios */}
             {usuariosFiltrados.map((usuario) => (
               <div key={usuario.id_usuario} className="table-row">
-                {/* Información del usuario */}
-                <div className="table-cell">
-                  <div className="user-info">
-                    <Avatar name={usuario.nombre} size="medium" />
-                    <div className="user-details">
-                      <div className="user-name">{usuario.nombre}</div>
-                      <div className="user-id">ID: {usuario.id_usuario}</div>
-                    </div>
-                  </div>
-                </div>
-                
                 {/* Información de contacto */}
                 <div className="table-cell">
                   <div className="contact-info">
-                    <div className="contact-item">
-                      <span className="contact-icon">📧</span>
-                      <span className="contact-value">{usuario.email}</span>
-                    </div>
-                    <div className="contact-item">
-                      <span className="contact-icon">📞</span>
-                      <span className="contact-value">{usuario.telefono}</span>
+                    <div className="contact-main">
+                      <div className="contact-item">
+                        <span className="contact-value">{usuario.email || 'N/A'}</span>
+                      </div>
+                      <div className="contact-item">
+                        <span className="contact-value">{formatearTelefono(usuario.telefono)}</span>
+                      </div>
                     </div>
                     <div className="verification-badges">
                       {usuario.email_verificado && (
                         <Badge variant="success" size="small">Email ✓</Badge>
-                      )}
-                      {usuario.telefono_verificado && (
-                        <Badge variant="success" size="small">Tel ✓</Badge>
                       )}
                     </div>
                   </div>
@@ -312,11 +334,11 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
                 <div className="table-cell">
                   <div className="registration-info">
                     <div className="registration-date">
-                      {new Date(usuario.fecha_registro).toLocaleDateString()}
+                      {formatearFecha(usuario.fecha_registro)}
                     </div>
                     <div className="last-access">
                       Último acceso: {usuario.ultimo_acceso ? 
-                        new Date(usuario.ultimo_acceso).toLocaleDateString() : 
+                        formatearFecha(usuario.ultimo_acceso) : 
                         'Nunca'
                       }
                     </div>
@@ -448,11 +470,33 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     password: '',
     telefono: '',
     direccion: '',
-    id_ciudad: 1,
+    id_ciudad: '',
     rol: 'consumidor' as 'admin' | 'consumidor' | 'productor'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [loadingCiudades, setLoadingCiudades] = useState(false);
+
+  // Cargar ciudades al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      const cargarCiudades = async () => {
+        try {
+          setLoadingCiudades(true);
+          const response = await ubicacionesService.listarCiudades();
+          if (response.success && response.data) {
+            setCiudades(response.data);
+          }
+        } catch (error) {
+          console.error('Error cargando ciudades:', error);
+        } finally {
+          setLoadingCiudades(false);
+        }
+      };
+      cargarCiudades();
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -461,10 +505,23 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await adminService.crearUsuario(formData);
+      const response = await adminService.crearUsuario({
+        ...formData,
+        id_ciudad: Number(formData.id_ciudad)
+      });
       
       if (response.success) {
         onSuccess();
+        // Resetear formulario
+        setFormData({
+          nombre: '',
+          email: '',
+          password: '',
+          telefono: '',
+          direccion: '',
+          id_ciudad: '',
+          rol: 'consumidor'
+        });
       } else {
         setError(response.message || 'Error creando usuario');
       }
@@ -542,6 +599,23 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           </div>
           
           <div className="form-group">
+            <label>Ciudad:</label>
+            <select
+              value={formData.id_ciudad}
+              onChange={(e) => handleInputChange('id_ciudad', e.target.value)}
+              required
+              disabled={loadingCiudades}
+            >
+              <option value="">{loadingCiudades ? 'Cargando ciudades...' : 'Selecciona una ciudad'}</option>
+              {ciudades.map((ciudad) => (
+                <option key={ciudad.id_ciudad} value={ciudad.id_ciudad}>
+                  {ciudad.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
             <label>Rol del usuario:</label>
             <select
               value={formData.rol}
@@ -603,11 +677,34 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     email: usuario.email,
     telefono: usuario.telefono,
     direccion: usuario.direccion,
+    id_ciudad: usuario.id_ciudad?.toString() || '',
     rol: usuario.rol,
     activo: usuario.activo
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [loadingCiudades, setLoadingCiudades] = useState(false);
+
+  // Cargar ciudades al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      const cargarCiudades = async () => {
+        try {
+          setLoadingCiudades(true);
+          const response = await ubicacionesService.listarCiudades();
+          if (response.success && response.data) {
+            setCiudades(response.data);
+          }
+        } catch (error) {
+          console.error('Error cargando ciudades:', error);
+        } finally {
+          setLoadingCiudades(false);
+        }
+      };
+      cargarCiudades();
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -616,7 +713,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await adminService.editarUsuario(usuario.id_usuario, formData);
+      const response = await adminService.editarUsuario(usuario.id_usuario, {
+        ...formData,
+        id_ciudad: formData.id_ciudad ? Number(formData.id_ciudad) : undefined
+      });
       
       if (response.success) {
         onSuccess();
@@ -679,6 +779,23 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               onChange={(e) => handleInputChange('direccion', e.target.value)}
               required
             />
+          </div>
+          
+          <div className="form-group">
+            <label>Ciudad:</label>
+            <select
+              value={formData.id_ciudad}
+              onChange={(e) => handleInputChange('id_ciudad', e.target.value)}
+              required
+              disabled={loadingCiudades}
+            >
+              <option value="">{loadingCiudades ? 'Cargando ciudades...' : 'Selecciona una ciudad'}</option>
+              {ciudades.map((ciudad) => (
+                <option key={ciudad.id_ciudad} value={ciudad.id_ciudad}>
+                  {ciudad.nombre}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div className="form-group">

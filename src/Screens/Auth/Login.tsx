@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { APP_CONFIG } from '../../config';
+import { authService } from '../../services/auth';
 import './Login.css';
 
 interface LoginFormData {
@@ -71,43 +72,32 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
     setErrorMessage('');
     
     try {
-      const response = await fetch(`${APP_CONFIG.API_BASE_URL}${APP_CONFIG.API_ENDPOINTS.AUTH.LOGIN}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
+      const response = await authService.login({
+        email: formData.email,
+        password: formData.password
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Guardar token y datos de usuario
-        localStorage.setItem(APP_CONFIG.AUTH.TOKEN_KEY, data.token);
-        localStorage.setItem(APP_CONFIG.AUTH.USER_KEY, JSON.stringify(data.usuario));
-        
+      if (response && response.token && response.usuario) {
         // Llamar callback si existe
         if (onLogin) {
           onLogin(formData);
         }
         
         // Redirigir según el rol
-        if (data.usuario.rol === 'admin') {
+        if (response.usuario.rol === 'admin') {
           window.location.href = '/admin';
-        } else if (data.usuario.rol === 'productor') {
+        } else if (response.usuario.rol === 'productor') {
           window.location.href = '/productor';
         } else {
           window.location.href = '/consumidor';
         }
       } else {
-        setErrorMessage(data.message || 'Error al iniciar sesión');
+        setErrorMessage('Error al iniciar sesión. Respuesta inválida del servidor.');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error en login:', error);
-      setErrorMessage('Error de conexión. Verifica tu conexión a internet.');
+      const errorMessage = error instanceof Error ? error.message : 'Error de conexión. Verifica tu conexión a internet.';
+      setErrorMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }

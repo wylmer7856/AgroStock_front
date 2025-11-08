@@ -87,7 +87,8 @@ export const ProductosScreen: React.FC<ProductosScreenProps> = () => {
       return (
         producto.nombre.toLowerCase().includes(busqueda) ||
         producto.descripcion?.toLowerCase().includes(busqueda) ||
-        producto.unidadMedida?.toLowerCase().includes(busqueda)
+        producto.unidad_medida.toLowerCase().includes(busqueda) ||
+        producto.categoria_nombre?.toLowerCase().includes(busqueda)
       );
     });
     
@@ -318,7 +319,7 @@ export const ProductosScreen: React.FC<ProductosScreenProps> = () => {
               <Card key={producto.id_producto} className="producto-card-item">
                 <div className="producto-imagen-wrapper">
                   <img
-                    src={producto.imagenPrincipal || producto.imagenUrl || PLACEHOLDER_IMAGES.PRODUCTO}
+                    src={producto.imagen_principal || PLACEHOLDER_IMAGES.PRODUCTO}
                     alt={producto.nombre}
                     onError={(e) => handleImageError(e, PLACEHOLDER_IMAGES.PRODUCTO)}
                     className="producto-imagen-card"
@@ -348,13 +349,11 @@ export const ProductosScreen: React.FC<ProductosScreenProps> = () => {
                   <div className="producto-detalles-card">
                     <div className="producto-precio-card">
                       {formatearPrecio(producto.precio || 0)}
-                      {producto.unidadMedida && (
-                        <span className="producto-unidad"> / {producto.unidadMedida}</span>
-                      )}
+                      <span className="producto-unidad"> / {producto.unidad_medida}</span>
                     </div>
                     {producto.stock !== undefined && (
                       <div className="producto-stock-card">
-                        Stock: {producto.stock} {producto.unidadMedida || 'unidades'}
+                        Stock: {producto.stock} {producto.unidad_medida}
                       </div>
                     )}
                   </div>

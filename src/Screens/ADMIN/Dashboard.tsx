@@ -7,6 +7,7 @@ import { UsuariosScreen } from './UsuariosScreen';
 import { ProductosScreen } from './ProductosScreen';
 import { ReportesScreen } from './ReportesScreen';
 import { EstadisticasScreen } from './EstadisticasScreen';
+import { useAuth } from '../../contexts/AuthContext';
 import adminService from '../../services/admin';
 import './AdminScreens.css';
 
@@ -18,6 +19,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // ===== ESTADOS =====
   const [currentView, setCurrentView] = useState<'overview' | 'usuarios' | 'productos' | 'reportes' | 'estadisticas'>('overview');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [loadingLogout, setLoadingLogout] = useState(false);
+  const { logout, user } = useAuth();
 
   // ===== FUNCIONES =====
   const mostrarToast = (message: string, type: 'success' | 'error') => {
@@ -29,6 +32,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     setCurrentView(view as any);
     if (onNavigate) {
       onNavigate(view);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+      return;
+    }
+
+    try {
+      setLoadingLogout(true);
+      await logout();
+      mostrarToast('Sesión cerrada correctamente', 'success');
+      // El logout del contexto ya redirige automáticamente a 'welcome'
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      mostrarToast('Error al cerrar sesión', 'error');
+    } finally {
+      setLoadingLogout(false);
     }
   };
 
@@ -113,10 +134,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           <div className="admin-info">
             <div className="admin-avatar">👨‍💼</div>
             <div className="admin-details">
-              <div className="admin-name">Administrador</div>
+              <div className="admin-name">{user?.nombre || 'Administrador'}</div>
               <div className="admin-role">Admin</div>
             </div>
           </div>
+          <Button
+            variant="danger"
+            size="small"
+            icon="🚪"
+            onClick={handleLogout}
+            loading={loadingLogout}
+            className="logout-button"
+            fullWidth
+          >
+            Cerrar Sesión
+          </Button>
         </div>
       </div>
 
@@ -162,6 +194,7 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
     productor: 0,
     consumidor: 0
   });
+  const [actividadReciente, setActividadReciente] = useState<any[]>([]);
 
   // ✅ Cargar datos reales al montar
   useEffect(() => {
@@ -171,12 +204,13 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
   const cargarDatosResumen = async () => {
     try {
       setLoading(true);
-      // Cargar estadísticas, usuarios, productos y reportes en paralelo
-      const [estadisticas, usuarios, productos, reportes] = await Promise.all([
+      // Cargar estadísticas, usuarios, productos, reportes y actividad en paralelo
+      const [estadisticas, usuarios, productos, reportes, actividad] = await Promise.all([
         adminService.getEstadisticasGenerales(),
         adminService.getUsuarios(),
         adminService.getProductos(),
-        adminService.getReportes()
+        adminService.getReportes(),
+        adminService.getActividadReciente().catch(() => ({ success: false, data: [] }))
       ]);
 
       if (estadisticas.success && estadisticas.data) {
@@ -203,6 +237,11 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
             productor: usuariosList.filter((u: any) => u.rol === 'productor').length,
             consumidor: usuariosList.filter((u: any) => u.rol === 'consumidor').length
           });
+        }
+
+        // Cargar actividad reciente
+        if (actividad.success && actividad.data) {
+          setActividadReciente(actividad.data.slice(0, 5)); // Solo las 5 más recientes
         }
       }
     } catch (error) {
@@ -433,27 +472,55 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
 
         <Card title="Actividad Reciente" className="activity-card">
           <div className="activity-list">
-            <div className="activity-item">
-              <div className="activity-icon">👤</div>
-              <div className="activity-content">
-                <div className="activity-description">Nuevo usuario registrado</div>
-                <div className="activity-time">Hace 5 minutos</div>
+            {actividadReciente.length > 0 ? (
+              actividadReciente.map((actividad) => {
+                const getActivityIcon = (tipo: string) => {
+                  switch (tipo) {
+                    case 'usuario_registrado': return '👤';
+                    case 'producto_creado': return '🛍️';
+                    case 'pedido_realizado': return '📦';
+                    case 'reporte_creado': return '📋';
+                    case 'mensaje_enviado': return '💬';
+                    case 'reseña_creada': return '⭐';
+                    default: return '📝';
+                  }
+                };
+
+                const formatTime = (timestamp: string) => {
+                  const date = new Date(timestamp);
+                  const now = new Date();
+                  const diff = now.getTime() - date.getTime();
+                  const minutes = Math.floor(diff / 60000);
+                  const hours = Math.floor(minutes / 60);
+                  const days = Math.floor(hours / 24);
+
+                  if (minutes < 1) return 'Hace un momento';
+                  if (minutes < 60) return `Hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+                  if (hours < 24) return `Hace ${hours} hora${hours > 1 ? 's' : ''}`;
+                  return `Hace ${days} día${days > 1 ? 's' : ''}`;
+                };
+
+                return (
+                  <div key={actividad.id} className="activity-item">
+                    <div className="activity-icon">{getActivityIcon(actividad.tipo)}</div>
+                    <div className="activity-content">
+                      <div className="activity-description">{actividad.descripcion}</div>
+                      <div className="activity-time">
+                        {actividad.timestamp ? formatTime(actividad.timestamp) : 'Reciente'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="activity-item">
+                <div className="activity-icon">📝</div>
+                <div className="activity-content">
+                  <div className="activity-description">No hay actividad reciente</div>
+                  <div className="activity-time">El sistema está en calma</div>
+                </div>
               </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">🛍️</div>
-              <div className="activity-content">
-                <div className="activity-description">Producto agregado</div>
-                <div className="activity-time">Hace 15 minutos</div>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">📦</div>
-              <div className="activity-content">
-                <div className="activity-description">Pedido completado</div>
-                <div className="activity-time">Hace 30 minutos</div>
-              </div>
-            </div>
+            )}
           </div>
         </Card>
       </div>
