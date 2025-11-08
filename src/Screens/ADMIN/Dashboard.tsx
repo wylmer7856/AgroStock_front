@@ -7,10 +7,13 @@ import { UsuariosScreen } from './UsuariosScreen';
 import { ProductosScreen } from './ProductosScreen';
 import { ReportesScreen } from './ReportesScreen';
 import { EstadisticasScreen } from './EstadisticasScreen';
+<<<<<<< HEAD
 import { PedidosScreen } from './PedidosScreen';
 import { CategoriasScreen } from './CategoriasScreen';
 import { AuditoriaScreen } from './AuditoriaScreen';
 import { ConfiguracionScreen } from './ConfiguracionScreen';
+=======
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
 import { useAuth } from '../../contexts/AuthContext';
 import adminService from '../../services/admin';
 import './AdminScreens.css';
@@ -24,6 +27,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState<'overview' | 'usuarios' | 'productos' | 'reportes' | 'estadisticas' | 'pedidos' | 'categorias' | 'auditoria' | 'configuracion'>('overview');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [loadingLogout, setLoadingLogout] = useState(false);
+  const { logout, user } = useAuth();
 
   // ===== FUNCIONES =====
   const mostrarToast = (message: string, type: 'success' | 'error') => {
@@ -37,6 +42,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     // Si hay un callback de navegación externa, también llamarlo
     if (onNavigate) {
       onNavigate(view);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+      return;
+    }
+
+    try {
+      setLoadingLogout(true);
+      await logout();
+      mostrarToast('Sesión cerrada correctamente', 'success');
+      // El logout del contexto ya redirige automáticamente a 'welcome'
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      mostrarToast('Error al cerrar sesión', 'error');
+    } finally {
+      setLoadingLogout(false);
     }
   };
 
@@ -153,6 +176,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <div className="admin-avatar">A</div>
             <div className="admin-details">
               <div className="admin-name">{user?.nombre || 'Administrador'}</div>
+<<<<<<< HEAD
               <div className="admin-role">{user?.rol || 'Admin'}</div>
             </div>
           </div>
@@ -166,6 +190,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               }
             }}
             style={{ marginTop: '1rem', width: '100%' }}
+=======
+              <div className="admin-role">Admin</div>
+            </div>
+          </div>
+          <Button
+            variant="danger"
+            size="small"
+            icon="🚪"
+            onClick={handleLogout}
+            loading={loadingLogout}
+            className="logout-button"
+            fullWidth
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
           >
             Cerrar Sesión
           </Button>
@@ -225,12 +262,17 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
   const cargarDatosResumen = async () => {
     try {
       setLoading(true);
+<<<<<<< HEAD
       setError(null);
       
       console.log('[Dashboard] Iniciando carga de datos...');
       
       // Cargar estadísticas, usuarios, productos, reportes y actividad en paralelo
       const [estadisticas, usuarios, productos, reportes, actividad] = await Promise.allSettled([
+=======
+      // Cargar estadísticas, usuarios, productos, reportes y actividad en paralelo
+      const [estadisticas, usuarios, productos, reportes, actividad] = await Promise.all([
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
         adminService.getEstadisticasGenerales(),
         adminService.getUsuarios(),
         adminService.getProductos(),
@@ -274,6 +316,7 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
             consumidor: usuariosList.filter((u: any) => u.rol === 'consumidor').length
           });
         }
+<<<<<<< HEAD
       } else {
         // Si las estadísticas fallan, intentar cargar datos desde usuarios y productos directamente
         let datosCargados = false;
@@ -311,6 +354,12 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
           // Si se cargaron datos parciales, limpiar el error
           setError(null);
           console.log('[Dashboard] Datos parciales cargados correctamente');
+=======
+
+        // Cargar actividad reciente
+        if (actividad.success && actividad.data) {
+          setActividadReciente(actividad.data.slice(0, 5)); // Solo las 5 más recientes
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
         }
       }
 
@@ -355,10 +404,10 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
   return (
     <div className="overview-screen">
       {/* Header */}
-      <div className="overview-header">
+      <div className="screen-header">
         <div className="header-content">
-          <h1>Resumen del Sistema</h1>
-          <p>Vista general de la plataforma AgroStock</p>
+          <h1>PANEL PRINCIPAL</h1>
+          <p>Resumen</p>
         </div>
         <div className="header-actions">
           <Button

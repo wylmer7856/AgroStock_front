@@ -8,6 +8,43 @@ import { Card, Button, Input, Modal, Loading, Badge, Avatar, Toast } from '../..
 import type { UsuarioAdmin, FiltrosUsuarios, Ciudad } from '../../types';
 import './AdminScreens.css';
 
+// ===== FUNCIONES HELPER =====
+const formatearFecha = (fecha: string | null | undefined): string => {
+  if (!fecha) return 'N/A';
+  
+  try {
+    const date = new Date(fecha);
+    // Verificar que la fecha sea válida
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
+    // Formato: DD/MM/YYYY
+    return date.toLocaleDateString('es-CO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (error) {
+    return 'Fecha inválida';
+  }
+};
+
+const formatearTelefono = (telefono: string | null | undefined): string => {
+  if (!telefono) return 'N/A';
+  
+  // Remover espacios y caracteres especiales
+  const numero = telefono.replace(/\D/g, '');
+  
+  // Formato colombiano: +57 300 123 4567 o 300 123 4567
+  if (numero.length === 10) {
+    return `${numero.substring(0, 3)} ${numero.substring(3, 6)} ${numero.substring(6)}`;
+  } else if (numero.length === 12 && numero.startsWith('57')) {
+    return `+57 ${numero.substring(2, 5)} ${numero.substring(5, 8)} ${numero.substring(8)}`;
+  }
+  
+  return telefono;
+};
+
 interface UsuariosScreenProps {
   onNavigate: (view: string) => void;
 }
@@ -129,15 +166,23 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = ({ onNavigate }) =>
     <div className="screen-container">
       <div className="screen-header">
         <div className="header-content">
+<<<<<<< HEAD
           <h1>Gestión de Usuarios</h1>
           <p>Administra todos los usuarios del sistema</p>
+=======
+          <h1>Usuarios</h1>
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
         </div>
         <div className="header-actions">
           <Button
             variant="primary"
             onClick={() => setShowCreateModal(true)}
           >
+<<<<<<< HEAD
             Nuevo Usuario
+=======
+            + Crear Usuario
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
           </Button>
           <Button
             variant="secondary"
@@ -196,7 +241,7 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = ({ onNavigate }) =>
 
       {/* Lista de usuarios en tarjetas */}
       <Card 
-        title={`Usuarios encontrados (${usuariosFiltrados.length})`}
+        title={`Usuarios (${usuariosFiltrados.length})`}
         className="usuarios-list-card"
       >
         {loading ? (
@@ -218,6 +263,7 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = ({ onNavigate }) =>
             </Button>
           </div>
         ) : (
+<<<<<<< HEAD
           <div className="usuarios-cards-grid">
             {usuariosFiltrados.map((usuario) => (
               <Card key={usuario.id_usuario} className="usuario-card">
@@ -242,6 +288,59 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = ({ onNavigate }) =>
                       {usuario.rol === 'consumidor' && '🛒'}
                       {' '}{usuario.rol}
                     </Badge>
+=======
+          <div className="usuarios-table">
+            {/* Header de la tabla */}
+            <div className="table-header">
+              <div className="table-cell-header">Contacto</div>
+              <div className="table-cell-header">Rol</div>
+              <div className="table-cell-header">Estado</div>
+              <div className="table-cell-header">Registro</div>
+              <div className="table-cell-header">Acciones</div>
+            </div>
+            
+            {/* Filas de usuarios */}
+            {usuariosFiltrados.map((usuario) => (
+              <div key={usuario.id_usuario} className="table-row">
+                {/* Información de contacto */}
+                <div className="table-cell">
+                  <div className="contact-info">
+                    <div className="contact-main">
+                      <div className="contact-item">
+                        <span className="contact-value">{usuario.email || 'N/A'}</span>
+                      </div>
+                      <div className="contact-item">
+                        <span className="contact-value">{formatearTelefono(usuario.telefono)}</span>
+                      </div>
+                    </div>
+                    <div className="verification-badges">
+                      {usuario.email_verificado && (
+                        <Badge variant="success" size="small">Email ✓</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Rol */}
+                <div className="table-cell">
+                  <Badge 
+                    variant={
+                      usuario.rol === 'admin' ? 'error' : 
+                      usuario.rol === 'productor' ? 'warning' : 'info'
+                    }
+                    size="medium"
+                  >
+                    {usuario.rol === 'admin' && '👨‍💼'}
+                    {usuario.rol === 'productor' && '🌱'}
+                    {usuario.rol === 'consumidor' && '🛒'}
+                    {' '}{usuario.rol}
+                  </Badge>
+                </div>
+                
+                {/* Estado */}
+                <div className="table-cell">
+                  <div className="status-info">
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
                     <Badge 
                       variant={usuario.activo ? 'success' : 'error'}
                       size="medium"
@@ -294,9 +393,31 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = ({ onNavigate }) =>
                     )}
                   </div>
                 </div>
+<<<<<<< HEAD
 
                 <div className="usuario-card-footer">
                   <div className="usuario-actions">
+=======
+                
+                {/* Fecha de registro */}
+                <div className="table-cell">
+                  <div className="registration-info">
+                    <div className="registration-date">
+                      {formatearFecha(usuario.fecha_registro)}
+                    </div>
+                    <div className="last-access">
+                      Último acceso: {usuario.ultimo_acceso ? 
+                        formatearFecha(usuario.ultimo_acceso) : 
+                        'Nunca'
+                      }
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Acciones */}
+                <div className="table-cell">
+                  <div className="action-buttons">
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
                     <Button
                       size="small"
                       variant="secondary"
@@ -385,3 +506,412 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = ({ onNavigate }) =>
     </div>
   );
 };
+<<<<<<< HEAD
+=======
+
+// ===== MODAL PARA CREAR USUARIO =====
+interface CreateUserModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const CreateUserModal: React.FC<CreateUserModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess
+}) => {
+  const [formData, setFormData] = useState({
+    nombre: '',
+    email: '',
+    password: '',
+    telefono: '',
+    direccion: '',
+    id_ciudad: '',
+    rol: 'consumidor' as 'admin' | 'consumidor' | 'productor'
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [loadingCiudades, setLoadingCiudades] = useState(false);
+
+  // Cargar ciudades al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      const cargarCiudades = async () => {
+        try {
+          setLoadingCiudades(true);
+          const response = await ubicacionesService.listarCiudades();
+          if (response.success && response.data) {
+            setCiudades(response.data);
+          }
+        } catch (error) {
+          console.error('Error cargando ciudades:', error);
+        } finally {
+          setLoadingCiudades(false);
+        }
+      };
+      cargarCiudades();
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await adminService.crearUsuario({
+        ...formData,
+        id_ciudad: Number(formData.id_ciudad)
+      });
+      
+      if (response.success) {
+        onSuccess();
+        // Resetear formulario
+        setFormData({
+          nombre: '',
+          email: '',
+          password: '',
+          telefono: '',
+          direccion: '',
+          id_ciudad: '',
+          rol: 'consumidor'
+        });
+      } else {
+        setError(response.message || 'Error creando usuario');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string | number | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Crear Nuevo Usuario"
+      size="large"
+    >
+      <form onSubmit={handleSubmit} className="user-form">
+        <div className="form-grid">
+          <div className="form-group">
+            <Input
+              label="Nombre completo"
+              value={formData.nombre}
+              onChange={(e) => handleInputChange('nombre', e.target.value)}
+              required
+              placeholder="Ej: Juan Pérez"
+            />
+          </div>
+          
+          <div className="form-group">
+            <Input
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              required
+              placeholder="usuario@ejemplo.com"
+            />
+          </div>
+          
+          <div className="form-group">
+            <Input
+              label="Contraseña"
+              type="password"
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
+              required
+              placeholder="Mínimo 6 caracteres"
+            />
+          </div>
+          
+          <div className="form-group">
+            <Input
+              label="Teléfono"
+              value={formData.telefono}
+              onChange={(e) => handleInputChange('telefono', e.target.value)}
+              required
+              placeholder="+57 300 123 4567"
+            />
+          </div>
+          
+          <div className="form-group">
+            <Input
+              label="Dirección"
+              value={formData.direccion}
+              onChange={(e) => handleInputChange('direccion', e.target.value)}
+              required
+              placeholder="Dirección completa"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Ciudad:</label>
+            <select
+              value={formData.id_ciudad}
+              onChange={(e) => handleInputChange('id_ciudad', e.target.value)}
+              required
+              disabled={loadingCiudades}
+            >
+              <option value="">{loadingCiudades ? 'Cargando ciudades...' : 'Selecciona una ciudad'}</option>
+              {ciudades.map((ciudad) => (
+                <option key={ciudad.id_ciudad} value={ciudad.id_ciudad}>
+                  {ciudad.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label>Rol del usuario:</label>
+            <select
+              value={formData.rol}
+              onChange={(e) => handleInputChange('rol', e.target.value)}
+            >
+              <option value="consumidor">🛒 Consumidor</option>
+              <option value="productor">🌱 Productor</option>
+              <option value="admin">👨‍💼 Administrador</option>
+            </select>
+          </div>
+        </div>
+        
+        {error && (
+          <div className="form-error">
+            <span className="error-icon">❌</span>
+            <span>{error}</span>
+          </div>
+        )}
+        
+        <div className="form-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            loading={loading}
+            icon="➕"
+          >
+            Crear Usuario
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+// ===== MODAL PARA EDITAR USUARIO =====
+interface EditUserModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  usuario: UsuarioAdmin;
+  onSuccess: () => void;
+}
+
+const EditUserModal: React.FC<EditUserModalProps> = ({
+  isOpen,
+  onClose,
+  usuario,
+  onSuccess
+}) => {
+  const [formData, setFormData] = useState({
+    nombre: usuario.nombre,
+    email: usuario.email,
+    telefono: usuario.telefono,
+    direccion: usuario.direccion,
+    id_ciudad: usuario.id_ciudad?.toString() || '',
+    rol: usuario.rol,
+    activo: usuario.activo
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [loadingCiudades, setLoadingCiudades] = useState(false);
+
+  // Cargar ciudades al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      const cargarCiudades = async () => {
+        try {
+          setLoadingCiudades(true);
+          const response = await ubicacionesService.listarCiudades();
+          if (response.success && response.data) {
+            setCiudades(response.data);
+          }
+        } catch (error) {
+          console.error('Error cargando ciudades:', error);
+        } finally {
+          setLoadingCiudades(false);
+        }
+      };
+      cargarCiudades();
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await adminService.editarUsuario(usuario.id_usuario, {
+        ...formData,
+        id_ciudad: formData.id_ciudad ? Number(formData.id_ciudad) : undefined
+      });
+      
+      if (response.success) {
+        onSuccess();
+      } else {
+        setError(response.message || 'Error actualizando usuario');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string | number | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Editar Usuario: ${usuario.nombre}`}
+      size="large"
+    >
+      <form onSubmit={handleSubmit} className="user-form">
+        <div className="form-grid">
+          <div className="form-group">
+            <Input
+              label="Nombre completo"
+              value={formData.nombre}
+              onChange={(e) => handleInputChange('nombre', e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <Input
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <Input
+              label="Teléfono"
+              value={formData.telefono}
+              onChange={(e) => handleInputChange('telefono', e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <Input
+              label="Dirección"
+              value={formData.direccion}
+              onChange={(e) => handleInputChange('direccion', e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Ciudad:</label>
+            <select
+              value={formData.id_ciudad}
+              onChange={(e) => handleInputChange('id_ciudad', e.target.value)}
+              required
+              disabled={loadingCiudades}
+            >
+              <option value="">{loadingCiudades ? 'Cargando ciudades...' : 'Selecciona una ciudad'}</option>
+              {ciudades.map((ciudad) => (
+                <option key={ciudad.id_ciudad} value={ciudad.id_ciudad}>
+                  {ciudad.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label>Rol del usuario:</label>
+            <select
+              value={formData.rol}
+              onChange={(e) => handleInputChange('rol', e.target.value)}
+            >
+              <option value="consumidor">🛒 Consumidor</option>
+              <option value="productor">🌱 Productor</option>
+              <option value="admin">👨‍💼 Administrador</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Estado del usuario:</label>
+            <select
+              value={formData.activo.toString()}
+              onChange={(e) => handleInputChange('activo', e.target.value === 'true')}
+            >
+              <option value="true">✅ Activo</option>
+              <option value="false">❌ Inactivo</option>
+            </select>
+          </div>
+        </div>
+        
+        {error && (
+          <div className="form-error">
+            <span className="error-icon">❌</span>
+            <span>{error}</span>
+          </div>
+        )}
+        
+        <div className="form-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            loading={loading}
+            icon="💾"
+          >
+            Guardar Cambios
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+export default UsuariosScreen;
+
+
+
+
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e

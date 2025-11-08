@@ -47,12 +47,15 @@
   min-height: 100vh;
 }
 
+<<<<<<< HEAD
 .app-panel-layout {
   width: 100%;
   min-height: 100vh;
   /* Los paneles (admin, productor, consumidor) tienen su propio layout completo */
 }
 
+=======
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
 /* ===== LOADING STATE ===== */
 .app-loading {
   display: flex;

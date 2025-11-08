@@ -30,7 +30,11 @@ class ApiService {
     return headers;
   }
 
-  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+  private async handleResponse<T>(
+    response: Response, 
+    endpoint: string = '', 
+    includeAuth: boolean = true
+  ): Promise<ApiResponse<T>> {
     const contentType = response.headers.get('content-type');
     
     // Si la respuesta no es JSON, manejar como texto
@@ -51,6 +55,7 @@ class ApiService {
 
     // Manejar errores de autenticación
     if (response.status === 401) {
+<<<<<<< HEAD
       this.clearToken();
       throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
     }
@@ -71,6 +76,35 @@ class ApiService {
       if (key) {
         data.data = data[key];
       }
+=======
+      // Rutas públicas (login, register) no deberían mostrar "sesión expirada"
+      const isPublicRoute = endpoint.includes('/auth/login') || 
+                           endpoint.includes('/auth/register') ||
+                           endpoint.includes('/auth/forgot-password') ||
+                           endpoint.includes('/auth/reset-password');
+      
+      // Si es una ruta pública, usar el mensaje del backend
+      if (isPublicRoute) {
+        const errorMessage = data.message || 
+                            data.error || 
+                            'Credenciales incorrectas. Verifica tu email y contraseña.';
+        throw new Error(errorMessage);
+      }
+      
+      // Para rutas protegidas, limpiar token y mostrar mensaje de sesión expirada
+      this.clearToken();
+      const errorMessage = data.message || 
+                          data.error || 
+                          'Sesión expirada. Por favor, inicia sesión nuevamente.';
+      throw new Error(errorMessage);
+    }
+
+    if (response.status === 403) {
+      const errorMessage = data.message || 
+                          data.error || 
+                          'No tienes permisos para realizar esta acción.';
+      throw new Error(errorMessage);
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
     }
 
     if (!response.ok) {
@@ -117,8 +151,13 @@ class ApiService {
     try {
       console.log(`🌐 Making ${options.method || 'GET'} request to: ${url}`);
       const response = await fetch(url, config);
+<<<<<<< HEAD
       console.log(`✅ Response status: ${response.status} for ${url}`);
       return await this.handleResponse<T>(response);
+=======
+    console.log(`✅ Response status: ${response.status} for ${url}`);
+      return await this.handleResponse<T>(response, endpoint, includeAuth);
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
     } catch (error: any) {
       console.error(`❌ API Error [${options.method || 'GET'} ${endpoint}]:`, error);
       console.error(`   URL: ${url}`);

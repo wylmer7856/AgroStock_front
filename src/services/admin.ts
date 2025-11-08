@@ -160,7 +160,11 @@ class AdminService {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
       // ✅ Endpoint correcto del backend - AdminRouter
+<<<<<<< HEAD
       const response = await apiService.get<any>(
+=======
+      const response = await apiService.get<{reportes: Reporte[], total: number} | Reporte[]>(
+>>>>>>> 981c03b2e72622b605b6649da12a5fbfd455951e
         `/admin/reportes${queryString}`
       );
       
