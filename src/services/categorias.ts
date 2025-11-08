@@ -11,10 +11,25 @@ class CategoriasService {
   // ===== LISTAR CATEGORÍAS =====
   async listarCategorias(): Promise<ApiResponse<Categoria[]>> {
     try {
-      const response = await apiService.get<Categoria[]>(
+      const response = await apiService.get<any>(
         `/categorias`
       );
-      return response;
+      
+      // El backend devuelve { success: true, categorias: [...], total: ... }
+      // Necesitamos adaptarlo al formato esperado { success: true, data: [...] }
+      if (response.success && (response.categorias || response.data)) {
+        return {
+          success: true,
+          data: response.categorias || response.data,
+          message: response.message || `${(response.categorias || response.data || []).length} categorías encontradas`
+        };
+      }
+      
+      return {
+        success: response.success || false,
+        data: response.categorias || response.data || [],
+        message: response.message || 'No se encontraron categorías'
+      };
     } catch (error) {
       console.error('Error listando categorías:', error);
       throw error;
@@ -24,10 +39,25 @@ class CategoriasService {
   // ===== OBTENER CATEGORÍA POR ID =====
   async obtenerCategoria(id: number): Promise<ApiResponse<Categoria>> {
     try {
-      const response = await apiService.get<Categoria>(
+      const response = await apiService.get<any>(
         `/categorias/${id}`
       );
-      return response;
+      
+      // El backend devuelve { success: true, categoria: {...} }
+      // Necesitamos adaptarlo al formato esperado { success: true, data: {...} }
+      if (response.success && (response.categoria || response.data)) {
+        return {
+          success: true,
+          data: response.categoria || response.data,
+          message: response.message || 'Categoría encontrada'
+        };
+      }
+      
+      return {
+        success: response.success || false,
+        data: response.categoria || response.data,
+        message: response.message || 'Categoría no encontrada'
+      };
     } catch (error) {
       console.error('Error obteniendo categoría:', error);
       throw error;

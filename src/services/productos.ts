@@ -134,6 +134,38 @@ class ProductosService {
       throw error;
     }
   }
+
+  // ===== SUBIR IMAGEN DE PRODUCTO =====
+  async subirImagenProducto(idProducto: number, imagenFile: File): Promise<ApiResponse<{ path: string; url: string }>> {
+    try {
+      // Convertir archivo a base64
+      const base64 = await this.fileToBase64(imagenFile);
+      
+      const response = await apiService.post<{ path: string; url: string }>(
+        `/images/producto/${idProducto}`,
+        { imageData: base64 }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error subiendo imagen:', error);
+      throw error;
+    }
+  }
+
+  // ===== CONVERTIR ARCHIVO A BASE64 =====
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remover el prefijo "data:image/...;base64,"
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  }
 }
 
 export const productosService = new ProductosService();

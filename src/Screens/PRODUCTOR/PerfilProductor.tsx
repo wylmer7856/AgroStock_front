@@ -46,43 +46,66 @@ export const PerfilProductor: React.FC<PerfilProductorProps> = ({ onNavigate, on
       setLoading(true);
       
       // Cargar departamentos
-      const deptosRes = await ubicacionesService.obtenerDepartamentos();
-      if (deptosRes.success && deptosRes.data) {
-        setDepartamentos(deptosRes.data);
+      try {
+        const deptosRes = await ubicacionesService.listarDepartamentos();
+        if (deptosRes.success && deptosRes.data) {
+          setDepartamentos(deptosRes.data);
+        }
+      } catch (error) {
+        console.error('Error cargando departamentos:', error);
+        // Continuar aunque falle, el usuario puede seguir usando el formulario
       }
 
-      // Cargar perfil existente
-      if (user?.id) {
-        const perfilRes = await productoresService.obtenerMiPerfil();
-        if (perfilRes.success && perfilRes.data) {
-          setFormData({
-            nombre_finca: perfilRes.data.nombre_finca || '',
-            tipo_productor: perfilRes.data.tipo_productor || 'agricultor',
-            id_departamento: perfilRes.data.id_departamento || null,
-            id_ciudad: perfilRes.data.id_ciudad || null,
-            vereda: perfilRes.data.vereda || '',
-            direccion_finca: perfilRes.data.direccion_finca || '',
-            numero_registro_ica: perfilRes.data.numero_registro_ica || '',
-            certificaciones: perfilRes.data.certificaciones || '',
-            descripcion_actividad: perfilRes.data.descripcion_actividad || '',
-            anos_experiencia: perfilRes.data.anos_experiencia || null,
-            hectareas: perfilRes.data.hectareas || null,
-            metodo_produccion: perfilRes.data.metodo_produccion || 'tradicional',
-            sitio_web: perfilRes.data.sitio_web || '',
-            foto_perfil_finca: perfilRes.data.foto_perfil_finca || ''
-          });
+      // Cargar perfil existente (si existe)
+      if (user?.id_usuario || user?.id) {
+        try {
+          const perfilRes = await productoresService.obtenerMiPerfil();
+          
+          // Si el perfil existe, cargar los datos
+          if (perfilRes.success && perfilRes.data) {
+            setFormData({
+              nombre_finca: perfilRes.data.nombre_finca || '',
+              tipo_productor: perfilRes.data.tipo_productor || 'agricultor',
+              id_departamento: perfilRes.data.id_departamento || null,
+              id_ciudad: perfilRes.data.id_ciudad || null,
+              vereda: perfilRes.data.vereda || '',
+              direccion_finca: perfilRes.data.direccion_finca || '',
+              numero_registro_ica: perfilRes.data.numero_registro_ica || '',
+              certificaciones: perfilRes.data.certificaciones || '',
+              descripcion_actividad: perfilRes.data.descripcion_actividad || '',
+              anos_experiencia: perfilRes.data.anos_experiencia || null,
+              hectareas: perfilRes.data.hectareas || null,
+              metodo_produccion: perfilRes.data.metodo_produccion || 'tradicional',
+              sitio_web: perfilRes.data.sitio_web || '',
+              foto_perfil_finca: perfilRes.data.foto_perfil_finca || ''
+            });
 
-          // Cargar ciudades del departamento seleccionado
-          if (perfilRes.data.id_departamento) {
-            const ciudadesRes = await ubicacionesService.obtenerCiudadesPorDepartamento(perfilRes.data.id_departamento);
-            if (ciudadesRes.success && ciudadesRes.data) {
-              setCiudades(ciudadesRes.data);
+            // Cargar ciudades del departamento seleccionado
+            if (perfilRes.data.id_departamento) {
+              try {
+                const ciudadesRes = await ubicacionesService.listarCiudades(perfilRes.data.id_departamento);
+                if (ciudadesRes.success && ciudadesRes.data) {
+                  setCiudades(ciudadesRes.data);
+                }
+              } catch (error) {
+                console.error('Error cargando ciudades:', error);
+              }
             }
+          } else {
+            // No hay perfil aún, pero eso está bien - el usuario puede crear uno
+            console.log('No se encontró perfil de productor, se puede crear uno nuevo');
+          }
+        } catch (error) {
+          console.error('Error obteniendo perfil:', error);
+          // No mostrar error si es 404 (perfil no encontrado), es normal la primera vez
+          if (error instanceof Error && !error.message.includes('404')) {
+            mostrarToast('Error cargando perfil. Puedes crear uno nuevo.', 'error');
           }
         }
       }
     } catch (error) {
-      mostrarToast('Error cargando datos', 'error');
+      console.error('Error general cargando datos:', error);
+      mostrarToast('Error cargando algunos datos. Puedes continuar completando el formulario.', 'error');
     } finally {
       setLoading(false);
     }
@@ -92,9 +115,14 @@ export const PerfilProductor: React.FC<PerfilProductorProps> = ({ onNavigate, on
     setFormData({ ...formData, id_departamento: idDepartamento, id_ciudad: null });
     
     if (idDepartamento) {
-      const ciudadesRes = await ubicacionesService.obtenerCiudadesPorDepartamento(idDepartamento);
-      if (ciudadesRes.success && ciudadesRes.data) {
-        setCiudades(ciudadesRes.data);
+      try {
+        const ciudadesRes = await ubicacionesService.listarCiudades(idDepartamento);
+        if (ciudadesRes.success && ciudadesRes.data) {
+          setCiudades(ciudadesRes.data);
+        }
+      } catch (error) {
+        console.error('Error cargando ciudades:', error);
+        setCiudades([]);
       }
     } else {
       setCiudades([]);

@@ -274,10 +274,10 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
   return (
     <div className="overview-screen">
       {/* Header */}
-      <div className="overview-header">
+      <div className="screen-header">
         <div className="header-content">
-          <h1>Resumen del Sistema</h1>
-          <p>Vista general de la plataforma AgroStock</p>
+          <h1>PANEL PRINCIPAL</h1>
+          <p>Resumen</p>
         </div>
         <div className="header-actions">
           <Button

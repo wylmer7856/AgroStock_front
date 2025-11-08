@@ -88,6 +88,7 @@ export interface Producto {
   categoria_nombre?: string;
   categoria_imagen?: string;
   nombre_productor?: string;
+  imagenUrl?: string | null; // URL completa de la imagen construida por el backend
 }
 
 export interface ProductoDetallado extends Producto {

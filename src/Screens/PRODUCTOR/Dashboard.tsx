@@ -7,6 +7,7 @@ import AgroStockLogo from '../../components/AgroStockLogo';
 import { productosService, pedidosService, productoresService } from '../../services';
 import type { Producto, ProductorProfile } from '../../types';
 import PerfilProductor from './PerfilProductor';
+import { ProductoForm } from './ProductoForm';
 import './ProductorDashboard.css';
 
 interface ProductorDashboardProps {
@@ -15,12 +16,13 @@ interface ProductorDashboardProps {
 
 export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
-  const [currentView, setCurrentView] = useState<'overview' | 'productos' | 'pedidos' | 'nuevo-producto' | 'perfil'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'productos' | 'pedidos' | 'nuevo-producto' | 'editar-producto' | 'perfil'>('overview');
   const [perfilProductor, setPerfilProductor] = useState<ProductorProfile | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [productoEditando, setProductoEditando] = useState<number | null>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -164,20 +166,40 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
         <div className="recent-section">
           <h3>Productos Recientes</h3>
           <div className="productos-list">
-            {productos.slice(0, 5).map(producto => (
-              <Card key={producto.id_producto} className="producto-card">
-                <div className="producto-info">
-                  <h4>{producto.nombre}</h4>
-                  <p>Stock: {producto.stock} {producto.unidad_medida}</p>
-                  <p>Precio: ${producto.precio?.toLocaleString()}</p>
-                </div>
-                <Badge 
-                  variant={producto.disponible ? 'success' : 'warning'}
-                >
-                  {producto.disponible ? 'Disponible' : 'Agotado'}
-                </Badge>
-              </Card>
-            ))}
+            {productos.slice(0, 5).map(producto => {
+              // Usar imagenUrl del backend si está disponible, sino construir desde imagen_principal
+              const imagenUrl = producto.imagenUrl || 
+                (producto.imagen_principal 
+                  ? (producto.imagen_principal.startsWith('http') 
+                      ? producto.imagen_principal 
+                      : `http://localhost:8000/${producto.imagen_principal.replace(/^\/+/, '')}`)
+                  : null);
+              
+              return (
+                <Card key={producto.id_producto} className="producto-card">
+                  {imagenUrl && (
+                    <img 
+                      src={imagenUrl} 
+                      alt={producto.nombre}
+                      className="producto-imagen-small"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <div className="producto-info">
+                    <h4>{producto.nombre}</h4>
+                    <p>Stock: {producto.stock} {producto.unidad_medida}</p>
+                    <p>Precio: ${producto.precio?.toLocaleString()}</p>
+                  </div>
+                  <Badge 
+                    variant={producto.disponible ? 'success' : 'warning'}
+                  >
+                    {producto.disponible ? 'Disponible' : 'Agotado'}
+                  </Badge>
+                </Card>
+              );
+            })}
             {productos.length === 0 && (
               <p>No tienes productos aún. ¡Crea tu primer producto!</p>
             )}
@@ -198,16 +220,28 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
         </div>
 
         <div className="productos-grid">
-          {productos.map(producto => (
-            <Card key={producto.id_producto} className="producto-card-detalle">
-              {producto.imagen_principal && (
-                <img 
-                  src={producto.imagen_principal} 
-                  alt={producto.nombre}
-                  className="producto-imagen"
-                />
-              )}
-              <div className="producto-detalle">
+          {productos.map(producto => {
+            // Usar imagenUrl del backend si está disponible, sino construir desde imagen_principal
+            const imagenUrl = producto.imagenUrl || 
+              (producto.imagen_principal 
+                ? (producto.imagen_principal.startsWith('http') 
+                    ? producto.imagen_principal 
+                    : `http://localhost:8000/${producto.imagen_principal.replace(/^\/+/, '')}`)
+                : null);
+            
+            return (
+              <Card key={producto.id_producto} className="producto-card-detalle">
+                {imagenUrl && (
+                  <img 
+                    src={imagenUrl} 
+                    alt={producto.nombre}
+                    className="producto-imagen"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
+                <div className="producto-detalle">
                 <h3>{producto.nombre}</h3>
                 <p>{producto.descripcion}</p>
                 <div className="producto-meta">
@@ -216,7 +250,14 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
                   <span>⚠️ Mínimo: {producto.stock_minimo}</span>
                 </div>
                 <div className="producto-actions">
-                  <Button variant="secondary" size="small">
+                  <Button 
+                    variant="secondary" 
+                    size="small"
+                    onClick={() => {
+                      setProductoEditando(producto.id_producto);
+                      setCurrentView('editar-producto');
+                    }}
+                  >
                     ✏️ Editar
                   </Button>
                   <Button 
@@ -229,7 +270,8 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
                 </div>
               </div>
             </Card>
-          ))}
+            );
+          })}
           {productos.length === 0 && (
             <p>No tienes productos. ¡Crea tu primer producto!</p>
           )}
@@ -334,13 +376,31 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
 
   const renderNuevoProducto = () => {
     return (
-      <div className="nuevo-producto-view">
-        <h2>Crear Nuevo Producto</h2>
-        <p>Formulario de creación de producto en desarrollo...</p>
-        <Button onClick={() => setCurrentView('productos')}>
-          ← Volver a Productos
-        </Button>
-      </div>
+      <ProductoForm
+        productoId={null}
+        onClose={() => setCurrentView('productos')}
+        onSuccess={() => {
+          setCurrentView('productos');
+          cargarDatos();
+        }}
+      />
+    );
+  };
+
+  const renderEditarProducto = () => {
+    return (
+      <ProductoForm
+        productoId={productoEditando}
+        onClose={() => {
+          setCurrentView('productos');
+          setProductoEditando(null);
+        }}
+        onSuccess={() => {
+          setCurrentView('productos');
+          setProductoEditando(null);
+          cargarDatos();
+        }}
+      />
     );
   };
 
@@ -363,6 +423,8 @@ export const ProductorDashboard: React.FC<ProductorDashboardProps> = ({ onNaviga
         return renderPedidos();
       case 'nuevo-producto':
         return renderNuevoProducto();
+      case 'editar-producto':
+        return renderEditarProducto();
       case 'perfil':
         return renderPerfil();
       case 'overview':

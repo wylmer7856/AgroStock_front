@@ -126,25 +126,8 @@ class PedidosService {
   // ===== OBTENER PEDIDOS DEL USUARIO ACTUAL =====
   async obtenerMisPedidos(tipo: 'consumidor' | 'productor', userId?: number): Promise<ApiResponse<Pedido[]>> {
     try {
-      // Obtener todos los pedidos (el backend filtra por usuario autenticado)
-      const response = await apiService.get<Pedido[]>('/pedidos');
-      
-      if (response.success && response.data && userId) {
-        // Filtrar según el tipo y el ID del usuario
-        const pedidosFiltrados = response.data.filter((pedido: Pedido) => {
-          if (tipo === 'consumidor') {
-            return pedido.id_consumidor === userId;
-          } else {
-            return pedido.id_productor === userId;
-          }
-        });
-        
-        return {
-          ...response,
-          data: pedidosFiltrados
-        };
-      }
-      
+      // Usar el endpoint específico para obtener mis pedidos (el backend filtra automáticamente por usuario autenticado)
+      const response = await apiService.get<Pedido[]>('/pedidos/mis-pedidos');
       return response;
     } catch (error) {
       console.error('Error obteniendo mis pedidos:', error);

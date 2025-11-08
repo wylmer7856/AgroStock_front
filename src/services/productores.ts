@@ -58,9 +58,17 @@ const productoresService = {
       return response;
     } catch (error: any) {
       console.error('Error obteniendo mi perfil:', error);
+      // Si es un 404, es normal (no hay perfil aún), retornar success: false pero sin error crítico
+      if (error.message && error.message.includes('404')) {
+        return {
+          success: false,
+          message: 'No se encontró perfil. Puedes crear uno nuevo.'
+        };
+      }
+      // Si es un 500 u otro error, retornar el error
       return {
         success: false,
-        message: error.response?.data?.message || 'Error al obtener tu perfil'
+        message: error.message || error.response?.data?.message || 'Error al obtener tu perfil'
       };
     }
   },
