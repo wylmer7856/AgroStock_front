@@ -32,7 +32,7 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
       const [productosRes, carritoRes, pedidosRes] = await Promise.all([
         productosService.obtenerProductosDisponibles(),
         carritoService.obtenerCarrito(),
-        pedidosService.obtenerMisPedidos('consumidor')
+        pedidosService.obtenerMisPedidos('consumidor', user?.id_usuario || user?.id)
       ]);
       
       if (productosRes.success && productosRes.data) {
@@ -73,30 +73,6 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
     }
   };
 
-  const handleActualizarCantidad = async (id: number, cantidad: number) => {
-    try {
-      const response = await carritoService.actualizarItem(id, cantidad);
-      if (response.success) {
-        mostrarToast('Carrito actualizado', 'success');
-        cargarDatos();
-      }
-    } catch (error) {
-      mostrarToast('Error actualizando carrito', 'error');
-    }
-  };
-
-  const handleEliminarDelCarrito = async (id: number) => {
-    try {
-      const response = await carritoService.eliminarItem(id);
-      if (response.success) {
-        mostrarToast('Producto eliminado del carrito', 'success');
-        cargarDatos();
-      }
-    } catch (error) {
-      mostrarToast('Error eliminando del carrito', 'error');
-    }
-  };
-
   const handleCheckout = async () => {
     if (!carrito || carrito.items.length === 0) {
       mostrarToast('El carrito está vacío', 'error');
@@ -105,8 +81,8 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
 
     try {
       const response = await carritoService.checkout({
-        direccionEntrega: user?.direccion || '',
-        fecha_entrega_estimada: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        direccionEntrega: user?.direccion || '', // El servicio espera direccionEntrega
+        id_ciudad_entrega: user?.id_ciudad || undefined,
         metodo_pago: 'efectivo'
       });
       
@@ -143,11 +119,14 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
         <div className="productos-grid">
           {productosFiltrados.map(producto => (
             <Card key={producto.id_producto} className="producto-card">
-              {producto.imagenPrincipal && (
+              {producto.imagen_principal && (
                 <img 
-                  src={producto.imagenPrincipal} 
+                  src={producto.imagen_principal} 
                   alt={producto.nombre}
                   className="producto-imagen"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder-producto.jpg';
+                  }}
                 />
               )}
               <div className="producto-info">
@@ -157,7 +136,7 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
                   ${producto.precio?.toLocaleString()}
                 </div>
                 <div className="producto-stock">
-                  Stock: {producto.stock} {producto.unidadMedida}
+                  Stock: {producto.stock} {producto.unidad_medida}
                 </div>
                 <Button 
                   onClick={() => handleAgregarAlCarrito(producto.id_producto)}
@@ -195,33 +174,38 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
         
         <div className="carrito-items">
           {carrito.items.map((item: any) => (
-            <Card key={item.id_item || item.id_producto} className="carrito-item">
+            <Card key={item.id_producto} className="carrito-item">
               <div className="item-info">
                 <h4>{item.producto?.nombre || 'Producto'}</h4>
                 <p>Precio unitario: ${item.precio_unitario?.toLocaleString()}</p>
+                {!item.disponible && (
+                  <Badge variant="warning">Sin stock suficiente</Badge>
+                )}
               </div>
               <div className="item-cantidad">
                 <Button 
                   size="small"
-                  onClick={() => handleActualizarCantidad(item.id_item, item.cantidad - 1)}
+                  onClick={() => carritoService.actualizarItem(item.id_producto, item.cantidad - 1).then(() => cargarDatos())}
+                  disabled={item.cantidad <= 1}
                 >
                   ➖
                 </Button>
                 <span>{item.cantidad}</span>
                 <Button 
                   size="small"
-                  onClick={() => handleActualizarCantidad(item.id_item, item.cantidad + 1)}
+                  onClick={() => carritoService.actualizarItem(item.id_producto, item.cantidad + 1).then(() => cargarDatos())}
+                  disabled={!item.disponible}
                 >
                   ➕
                 </Button>
               </div>
               <div className="item-total">
-                ${(item.precio_unitario * item.cantidad).toLocaleString()}
+                ${item.precio_total?.toLocaleString() || (item.precio_unitario * item.cantidad).toLocaleString()}
               </div>
               <Button 
                 variant="danger" 
                 size="small"
-                onClick={() => handleEliminarDelCarrito(item.id_item)}
+                onClick={() => carritoService.eliminarItem(item.id_producto).then(() => cargarDatos())}
               >
                 🗑️
               </Button>
@@ -232,7 +216,7 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
         <div className="carrito-total">
           <Card>
             <div className="total-info">
-              <h3>Total: ${carrito.total?.toLocaleString() || '0'}</h3>
+              <h3>Total: ${carrito.total_precio.toLocaleString()}</h3>
               <p>{carrito.total_items || 0} items</p>
             </div>
             <Button variant="success" onClick={handleCheckout}>
@@ -255,11 +239,12 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
               <div className="pedido-header">
                 <div>
                   <h3>Pedido #{pedido.id_pedido}</h3>
-                  <p>Fecha: {new Date(pedido.fecha).toLocaleDateString()}</p>
+                  <p>Fecha: {new Date(pedido.fecha_pedido || Date.now()).toLocaleDateString()}</p>
                 </div>
                 <Badge variant={
                   pedido.estado === 'entregado' ? 'success' :
-                  pedido.estado === 'enviado' ? 'info' :
+                  pedido.estado === 'en_camino' ? 'info' :
+                  pedido.estado === 'en_preparacion' ? 'warning' :
                   pedido.estado === 'confirmado' ? 'warning' : 'default'
                 }>
                   {pedido.estado}
@@ -268,8 +253,12 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
               
               <div className="pedido-info">
                 <p><strong>Total:</strong> ${pedido.total?.toLocaleString()}</p>
-                <p><strong>Dirección:</strong> {pedido.direccionEntrega}</p>
-                <p><strong>Fecha estimada:</strong> {new Date(pedido.fecha_entrega_estimada).toLocaleDateString()}</p>
+                <p><strong>Dirección:</strong> {pedido.direccion_entrega}</p>
+                <p><strong>Método de pago:</strong> {pedido.metodo_pago}</p>
+                <p><strong>Estado pago:</strong> {pedido.estado_pago || 'pendiente'}</p>
+                {pedido.fecha_entrega && (
+                  <p><strong>Fecha entrega:</strong> {new Date(pedido.fecha_entrega).toLocaleDateString()}</p>
+                )}
               </div>
             </Card>
           ))}
@@ -379,4 +368,5 @@ export const ConsumidorDashboard: React.FC<ConsumidorDashboardProps> = ({ onNavi
 };
 
 export default ConsumidorDashboard;
+
 

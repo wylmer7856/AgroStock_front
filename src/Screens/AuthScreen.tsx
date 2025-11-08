@@ -1,11 +1,13 @@
 // 🌾 PANTALLA DE AUTENTICACIÓN PROFESIONAL - AGROSTOCK
 // Diseño basado en imágenes de referencia con colores del campo
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Importación removida - usando emoji directo
 import { authService } from '../services/auth';
+import { ubicacionesService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import { Toast } from '../components/ReusableComponents';
+import type { Ciudad } from '../types';
 import './AuthScreen.css';
 
 interface AuthScreenProps {
@@ -14,7 +16,6 @@ interface AuthScreenProps {
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<'consumidor' | 'productor'>('consumidor');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const { login: contextLogin } = useAuth();
@@ -32,10 +33,31 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
     confirmPassword: '',
     telefono: '',
     direccion: '',
-    id_ciudad: ''
+    id_ciudad: null as number | null,
+    rol: 'consumidor' as 'consumidor' | 'productor'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [loadingCiudades, setLoadingCiudades] = useState(false);
+
+  // Cargar ciudades al montar
+  useEffect(() => {
+    const cargarCiudades = async () => {
+      try {
+        setLoadingCiudades(true);
+        const response = await ubicacionesService.listarCiudades();
+        if (response.success && response.data) {
+          setCiudades(response.data);
+        }
+      } catch (error) {
+        console.error('Error cargando ciudades:', error);
+      } finally {
+        setLoadingCiudades(false);
+      }
+    };
+    cargarCiudades();
+  }, []);
 
   // Manejar login
   const handleLogin = async (e: React.FormEvent) => {
@@ -46,21 +68,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
     try {
       const response = await authService.login(loginData);
       
-      if (response.success) {
+      // El LoginResponse tiene token y usuario directamente
+      if (response && response.token && response.usuario) {
         setToast({ message: '¡Bienvenido a AgroStock!', type: 'success' });
-        contextLogin(response.usuario);
         
-        setTimeout(() => {
-          if (response.usuario.rol === 'admin') {
-            onNavigate?.('admin');
-          } else if (response.usuario.rol === 'productor') {
-            onNavigate?.('productor');
-          } else {
-            onNavigate?.('consumidor');
-          }
-        }, 1500);
+        // El contexto maneja la redirección automáticamente
+        await contextLogin(response.usuario);
+      } else {
+        setToast({ 
+          message: 'Error: Respuesta inválida del servidor', 
+          type: 'error' 
+        });
       }
     } catch (error: any) {
+      console.error('Error en login:', error);
       setToast({ 
         message: error.message || 'Error al iniciar sesión', 
         type: 'error' 
@@ -76,6 +97,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
 
     if (!registerData.nombre.trim()) {
       newErrors.nombre = 'El nombre es requerido';
+    } else if (registerData.nombre.trim().length < 2) {
+      newErrors.nombre = 'El nombre debe tener al menos 2 caracteres';
     }
 
     if (!registerData.email) {
@@ -86,13 +109,17 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
 
     if (!registerData.telefono) {
       newErrors.telefono = 'El teléfono es requerido';
+    } else if (!/^\+?[\d\s\-()]+$/.test(registerData.telefono)) {
+      newErrors.telefono = 'El teléfono no es válido';
     }
 
-    if (!registerData.direccion) {
+    if (!registerData.direccion.trim()) {
       newErrors.direccion = 'La dirección es requerida';
+    } else if (registerData.direccion.trim().length < 5) {
+      newErrors.direccion = 'La dirección debe tener al menos 5 caracteres';
     }
 
-    if (!registerData.id_ciudad) {
+    if (!registerData.id_ciudad || registerData.id_ciudad === null) {
       newErrors.id_ciudad = 'La ciudad es requerida';
     }
 
@@ -123,9 +150,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
     setLoading(true);
 
     try {
+      if (!registerData.id_ciudad) {
+        setToast({ 
+          message: 'Por favor selecciona una ciudad', 
+          type: 'error' 
+        });
+        setLoading(false);
+        return;
+      }
+
       const response = await authService.register({
-        ...registerData,
-        rol: selectedRole
+        nombre: registerData.nombre,
+        email: registerData.email,
+        password: registerData.password,
+        telefono: registerData.telefono,
+        direccion: registerData.direccion,
+        id_ciudad: registerData.id_ciudad,
+        rol: registerData.rol
       });
       
       if (response.success) {
@@ -164,25 +205,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
         </p>
       </div>
 
-      {/* Tabs de rol - Solo en registro */}
-      {!isLogin && (
-        <div className="role-tabs">
-          <button
-            type="button"
-            className={`role-tab ${selectedRole === 'consumidor' ? 'active' : ''}`}
-            onClick={() => setSelectedRole('consumidor')}
-          >
-            Consumidor
-          </button>
-          <button
-            type="button"
-            className={`role-tab ${selectedRole === 'productor' ? 'active' : ''}`}
-            onClick={() => setSelectedRole('productor')}
-          >
-            Productor
-          </button>
-        </div>
-      )}
 
       {/* Tarjeta del formulario */}
       <div className="auth-card">
@@ -190,10 +212,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
         {!isLogin && (
           <div className="auth-card-header">
             <h2 className="auth-card-title">
-              Registro de {selectedRole === 'consumidor' ? 'Consumidor' : 'Productor'}
+              Registro de {registerData.rol === 'consumidor' ? 'Consumidor' : 'Productor'}
             </h2>
             <p className="auth-card-subtitle">
-              {selectedRole === 'consumidor'
+              {registerData.rol === 'consumidor'
                 ? 'Crea tu cuenta para explorar y comprar productos locales'
                 : 'Crea tu cuenta para vender y gestionar tus productos'
               }
@@ -377,29 +399,47 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
 
             <div className="form-field">
               <label htmlFor="register-ciudad" className="form-label">
-                Ubicación
+                Ciudad
               </label>
               <div className="input-wrapper">
                 <span className="input-icon">🏙️</span>
                 <select
                   id="register-ciudad"
-                  value={registerData.id_ciudad}
-                  onChange={(e) => setRegisterData({ ...registerData, id_ciudad: e.target.value })}
+                  value={registerData.id_ciudad || ''}
+                  onChange={(e) => setRegisterData({ ...registerData, id_ciudad: e.target.value ? Number(e.target.value) : null })}
                   className={`form-select ${errors.id_ciudad ? 'error' : ''}`}
                   required
-                  disabled={loading}
+                  disabled={loading || loadingCiudades}
                 >
-                  <option value="">Selecciona tu departamento</option>
-                  <option value="1">Bogotá D.C.</option>
-                  <option value="2">Antioquia</option>
-                  <option value="3">Valle del Cauca</option>
-                  <option value="4">Atlántico</option>
-                  <option value="5">Bolívar</option>
-                  <option value="6">Boyacá</option>
-                  <option value="7">Cundinamarca</option>
+                  <option value="">{loadingCiudades ? 'Cargando ciudades...' : 'Selecciona tu ciudad'}</option>
+                  {ciudades.map((ciudad) => (
+                    <option key={ciudad.id_ciudad} value={ciudad.id_ciudad}>
+                      {ciudad.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
               {errors.id_ciudad && <span className="error-text">{errors.id_ciudad}</span>}
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="register-rol" className="form-label">
+                Tipo de Cuenta
+              </label>
+              <div className="input-wrapper">
+                <span className="input-icon">👤</span>
+                <select
+                  id="register-rol"
+                  value={registerData.rol}
+                  onChange={(e) => setRegisterData({ ...registerData, rol: e.target.value as 'consumidor' | 'productor' })}
+                  className="form-select"
+                  required
+                  disabled={loading}
+                >
+                  <option value="consumidor">🛒 Consumidor - Comprar productos</option>
+                  <option value="productor">🌾 Productor - Vender productos</option>
+                </select>
+              </div>
             </div>
 
             <button
@@ -424,7 +464,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
                 className="auth-footer-link"
                 onClick={() => {
                   setIsLogin(false);
-                  setSelectedRole('consumidor');
+                  setRegisterData(prev => ({ ...prev, rol: 'consumidor' }));
                 }}
               >
                 Regístrate aquí

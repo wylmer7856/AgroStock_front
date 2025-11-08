@@ -7,8 +7,14 @@ export { default as productosService } from './productos';
 export { default as pedidosService } from './pedidos';
 export { default as carritoService } from './carrito';
 export { default as ubicacionesService } from './ubicaciones';
+export { default as productoresService } from './productores';
+export { default as imagenesService } from './imagenes';
+export { default as mensajesService } from './mensajes';
+export { default as categoriasService } from './categorias';
 
 // Re-exportar tipos de servicios
 export type { Pedido, DetallePedido, CrearPedidoData } from './pedidos';
 export type { Carrito, ItemCarrito, AgregarAlCarritoData } from './carrito';
+export type { Productor, CrearProductorData } from './productores';
+
 

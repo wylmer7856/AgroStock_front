@@ -1,4 +1,4 @@
-// 👨‍💼 DASHBOARD PRINCIPAL DEL ADMIN - PANEL DE CONTROL
+// DASHBOARD PRINCIPAL DEL ADMIN - PANEL DE CONTROL
 
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Badge, Loading, Toast } from '../../components/ReusableComponents';
@@ -7,6 +7,11 @@ import { UsuariosScreen } from './UsuariosScreen';
 import { ProductosScreen } from './ProductosScreen';
 import { ReportesScreen } from './ReportesScreen';
 import { EstadisticasScreen } from './EstadisticasScreen';
+import { PedidosScreen } from './PedidosScreen';
+import { CategoriasScreen } from './CategoriasScreen';
+import { AuditoriaScreen } from './AuditoriaScreen';
+import { ConfiguracionScreen } from './ConfiguracionScreen';
+import { useAuth } from '../../contexts/AuthContext';
 import adminService from '../../services/admin';
 import './AdminScreens.css';
 
@@ -16,7 +21,8 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
   // ===== ESTADOS =====
-  const [currentView, setCurrentView] = useState<'overview' | 'usuarios' | 'productos' | 'reportes' | 'estadisticas'>('overview');
+  const { user, logout } = useAuth();
+  const [currentView, setCurrentView] = useState<'overview' | 'usuarios' | 'productos' | 'reportes' | 'estadisticas' | 'pedidos' | 'categorias' | 'auditoria' | 'configuracion'>('overview');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // ===== FUNCIONES =====
@@ -26,7 +32,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   };
 
   const handleNavigate = (view: string) => {
+    // Cambiar la vista interna del panel de admin
     setCurrentView(view as any);
+    // Si hay un callback de navegación externa, también llamarlo
     if (onNavigate) {
       onNavigate(view);
     }
@@ -43,6 +51,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         return <ReportesScreen onNavigate={handleNavigate} />;
       case 'estadisticas':
         return <EstadisticasScreen onNavigate={handleNavigate} />;
+      case 'pedidos':
+        return <PedidosScreen onNavigate={handleNavigate} />;
+      case 'categorias':
+        return <CategoriasScreen onNavigate={handleNavigate} />;
+      case 'auditoria':
+        return <AuditoriaScreen onNavigate={handleNavigate} />;
+      case 'configuracion':
+        return <ConfiguracionScreen onNavigate={handleNavigate} />;
       case 'overview':
       default:
         return <OverviewScreen onNavigate={handleNavigate} />;
@@ -67,7 +83,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               className={`nav-item ${currentView === 'overview' ? 'active' : ''}`}
               onClick={() => setCurrentView('overview')}
             >
-              <span className="nav-icon">📊</span>
               <span className="nav-text">Resumen</span>
             </button>
           </div>
@@ -78,22 +93,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               className={`nav-item ${currentView === 'usuarios' ? 'active' : ''}`}
               onClick={() => setCurrentView('usuarios')}
             >
-              <span className="nav-icon">👥</span>
               <span className="nav-text">Usuarios</span>
             </button>
             <button
               className={`nav-item ${currentView === 'productos' ? 'active' : ''}`}
               onClick={() => setCurrentView('productos')}
             >
-              <span className="nav-icon">🛍️</span>
               <span className="nav-text">Productos</span>
             </button>
             <button
               className={`nav-item ${currentView === 'reportes' ? 'active' : ''}`}
               onClick={() => setCurrentView('reportes')}
             >
-              <span className="nav-icon">📋</span>
               <span className="nav-text">Reportes</span>
+            </button>
+            <button
+              className={`nav-item ${currentView === 'pedidos' ? 'active' : ''}`}
+              onClick={() => setCurrentView('pedidos')}
+            >
+              <span className="nav-text">Pedidos</span>
             </button>
           </div>
 
@@ -103,20 +121,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               className={`nav-item ${currentView === 'estadisticas' ? 'active' : ''}`}
               onClick={() => setCurrentView('estadisticas')}
             >
-              <span className="nav-icon">📈</span>
               <span className="nav-text">Estadísticas</span>
+            </button>
+            <button
+              className={`nav-item ${currentView === 'auditoria' ? 'active' : ''}`}
+              onClick={() => setCurrentView('auditoria')}
+            >
+              <span className="nav-text">Auditoría</span>
+            </button>
+          </div>
+
+          <div className="nav-section">
+            <div className="nav-section-title">Sistema</div>
+            <button
+              className={`nav-item ${currentView === 'categorias' ? 'active' : ''}`}
+              onClick={() => setCurrentView('categorias')}
+            >
+              <span className="nav-text">Categorías</span>
+            </button>
+            <button
+              className={`nav-item ${currentView === 'configuracion' ? 'active' : ''}`}
+              onClick={() => setCurrentView('configuracion')}
+            >
+              <span className="nav-text">Configuración</span>
             </button>
           </div>
         </nav>
 
         <div className="sidebar-footer">
           <div className="admin-info">
-            <div className="admin-avatar">👨‍💼</div>
+            <div className="admin-avatar">A</div>
             <div className="admin-details">
-              <div className="admin-name">Administrador</div>
-              <div className="admin-role">Admin</div>
+              <div className="admin-name">{user?.nombre || 'Administrador'}</div>
+              <div className="admin-role">{user?.rol || 'Admin'}</div>
             </div>
           </div>
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={async () => {
+              await logout();
+              if (onNavigate) {
+                onNavigate('welcome');
+              }
+            }}
+            style={{ marginTop: '1rem', width: '100%' }}
+          >
+            Cerrar Sesión
+          </Button>
         </div>
       </div>
 
@@ -157,11 +209,13 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
     reportesPendientes: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [usuariosPorRol, setUsuariosPorRol] = useState({
     admin: 0,
     productor: 0,
     consumidor: 0
   });
+  const [actividadReciente, setActividadReciente] = useState<any[]>([]);
 
   // ✅ Cargar datos reales al montar
   useEffect(() => {
@@ -171,16 +225,32 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
   const cargarDatosResumen = async () => {
     try {
       setLoading(true);
-      // Cargar estadísticas, usuarios, productos y reportes en paralelo
-      const [estadisticas, usuarios, productos, reportes] = await Promise.all([
+      setError(null);
+      
+      console.log('[Dashboard] Iniciando carga de datos...');
+      
+      // Cargar estadísticas, usuarios, productos, reportes y actividad en paralelo
+      const [estadisticas, usuarios, productos, reportes, actividad] = await Promise.allSettled([
         adminService.getEstadisticasGenerales(),
         adminService.getUsuarios(),
         adminService.getProductos(),
-        adminService.getReportes()
+        adminService.getReportes(),
+        adminService.getActividadReciente().catch(() => ({ success: false, data: [] }))
       ]);
 
-      if (estadisticas.success && estadisticas.data) {
-        const stats = estadisticas.data;
+      console.log('[Dashboard] Respuestas recibidas:', {
+        estadisticas: estadisticas.status,
+        usuarios: usuarios.status,
+        productos: productos.status,
+        reportes: reportes.status,
+        actividad: actividad.status
+      });
+
+      // Procesar estadísticas
+      if (estadisticas.status === 'fulfilled' && estadisticas.value.success && estadisticas.value.data) {
+        const stats = estadisticas.value.data;
+        console.log('[Dashboard] Estadísticas cargadas:', stats);
+        
         setResumenData({
           totalUsuarios: stats.total_usuarios || 0,
           totalProductos: stats.total_productos || 0,
@@ -189,24 +259,74 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
           usuariosNuevos: stats.usuarios_nuevos || 0,
           productosNuevos: stats.productos_nuevos || 0,
           pedidosPendientes: stats.pedidos_pendientes || 0,
-          reportesPendientes: reportes.success && reportes.data ? 
-            reportes.data.filter((r: any) => r.estado === 'pendiente').length : 0
+          reportesPendientes: reportes.status === 'fulfilled' && reportes.value.success && reportes.value.data ? 
+            reportes.value.data.filter((r: any) => r.estado === 'pendiente').length : 0
         });
 
         if (stats.usuarios_por_rol) {
           setUsuariosPorRol(stats.usuarios_por_rol);
-        } else {
+        } else if (usuarios.status === 'fulfilled' && usuarios.value.success && usuarios.value.data) {
           // Calcular desde lista de usuarios
-          const usuariosList = usuarios.success && usuarios.data ? usuarios.data : [];
+          const usuariosList = usuarios.value.data;
           setUsuariosPorRol({
             admin: usuariosList.filter((u: any) => u.rol === 'admin').length,
             productor: usuariosList.filter((u: any) => u.rol === 'productor').length,
             consumidor: usuariosList.filter((u: any) => u.rol === 'consumidor').length
           });
         }
+      } else {
+        // Si las estadísticas fallan, intentar cargar datos desde usuarios y productos directamente
+        let datosCargados = false;
+        
+        if (usuarios.status === 'fulfilled' && usuarios.value.success && usuarios.value.data) {
+          const usuariosList = usuarios.value.data;
+          setResumenData(prev => ({
+            ...prev,
+            totalUsuarios: usuariosList.length
+          }));
+          setUsuariosPorRol({
+            admin: usuariosList.filter((u: any) => u.rol === 'admin').length,
+            productor: usuariosList.filter((u: any) => u.rol === 'productor').length,
+            consumidor: usuariosList.filter((u: any) => u.rol === 'consumidor').length
+          });
+          datosCargados = true;
+        }
+        
+        if (productos.status === 'fulfilled' && productos.value.success && productos.value.data) {
+          setResumenData(prev => ({
+            ...prev,
+            totalProductos: productos.value.data.length
+          }));
+          datosCargados = true;
+        }
+        
+        // Solo mostrar error si no se pudo cargar ningún dato
+        if (!datosCargados) {
+          const errorMsg = estadisticas.status === 'fulfilled' 
+            ? (estadisticas.value.message || estadisticas.value.error || 'Error cargando estadísticas')
+            : estadisticas.reason?.message || 'Error de conexión con el servidor';
+          console.error('[Dashboard] Error en estadísticas:', errorMsg);
+          setError(errorMsg);
+        } else {
+          // Si se cargaron datos parciales, limpiar el error
+          setError(null);
+          console.log('[Dashboard] Datos parciales cargados correctamente');
+        }
       }
+
+      // Cargar actividad reciente
+      if (actividad.status === 'fulfilled' && actividad.value.success && actividad.value.data) {
+        setActividadReciente(actividad.value.data.slice(0, 5));
+      }
+      
+      console.log('[Dashboard] Carga de datos completada');
     } catch (error) {
-      console.error('Error cargando datos del resumen:', error);
+      console.error('[Dashboard] Error general:', error);
+      if (error instanceof Error) {
+        setError(`Error: ${error.message}`);
+      } else {
+        setError('Error desconocido al cargar datos');
+      }
     } finally {
       setLoading(false);
     }
@@ -243,7 +363,6 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
         <div className="header-actions">
           <Button
             variant="primary"
-            icon="🔄"
             onClick={cargarDatosResumen}
             loading={loading}
           >
@@ -252,67 +371,118 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Métricas principales */}
-      <div className="metrics-grid">
-        <Card className="metric-card primary">
-          <div className="metric-content">
+      {/* Mensaje de error si hay */}
+      {error && (
+        <div className="error-card-dashboard">
+          <div className="error-card-content">
+            <div className="error-text">
+              <strong>Error al cargar datos</strong>
+              <p>{error}</p>
+              <small>Revisa la consola del navegador (F12) para más detalles.</small>
+            </div>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={cargarDatosResumen}
+            >
+              Reintentar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Mensaje si no hay datos */}
+      {!loading && !error && resumenData.totalUsuarios === 0 && resumenData.totalProductos === 0 && (
+        <div className="empty-dashboard-state">
+          <h3>Bienvenido al Panel de Administración</h3>
+          <p>El sistema está listo para comenzar. Los datos aparecerán aquí cuando:</p>
+          <ul className="empty-dashboard-list">
+            <li>Se registren nuevos usuarios</li>
+            <li>Se agreguen productos al catálogo</li>
+            <li>Se realicen pedidos</li>
+          </ul>
+          <div className="empty-dashboard-actions">
+            <Button
+              variant="primary"
+              onClick={() => onNavigate('usuarios')}
+            >
+              Gestionar Usuarios
+            </Button>
+            <Button
+              variant="success"
+              onClick={() => onNavigate('productos')}
+            >
+              Ver Productos
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Métricas principales - Estilo iPhone */}
+      <div className="metrics-grid-iphone">
+        <div className="metric-card-iphone metric-users">
+          <div className="metric-icon-wrapper">
             <div className="metric-icon">👥</div>
-            <div className="metric-info">
-              <div className="metric-number">{formatearNumero(resumenData.totalUsuarios)}</div>
-              <div className="metric-label">Total Usuarios</div>
-              <div className="metric-change">
-                <Badge variant="success" size="small">
-                  +{resumenData.usuariosNuevos} nuevos
-                </Badge>
-              </div>
-            </div>
           </div>
-        </Card>
-
-        <Card className="metric-card success">
-          <div className="metric-content">
-            <div className="metric-icon">🛍️</div>
-            <div className="metric-info">
-              <div className="metric-number">{formatearNumero(resumenData.totalProductos)}</div>
-              <div className="metric-label">Total Productos</div>
-              <div className="metric-change">
-                <Badge variant="success" size="small">
-                  +{resumenData.productosNuevos} nuevos
-                </Badge>
-              </div>
-            </div>
+          <div className="metric-content-iphone">
+            <div className="metric-number-iphone">{formatearNumero(resumenData.totalUsuarios)}</div>
+            <div className="metric-label-iphone">Total Usuarios</div>
           </div>
-        </Card>
+          <button 
+            className="metric-action-btn"
+            onClick={() => onNavigate('usuarios')}
+            title="Ver usuarios"
+          >
+            <span>{resumenData.totalUsuarios}</span>
+            <span>→</span>
+          </button>
+        </div>
 
-        <Card className="metric-card warning">
-          <div className="metric-content">
+        <div className="metric-card-iphone metric-products">
+          <div className="metric-icon-wrapper">
+            <div className="metric-icon">🛍</div>
+          </div>
+          <div className="metric-content-iphone">
+            <div className="metric-number-iphone">{formatearNumero(resumenData.totalProductos)}</div>
+            <div className="metric-label-iphone">Total Productos</div>
+          </div>
+          <button 
+            className="metric-action-btn"
+            onClick={() => onNavigate('productos')}
+            title="Ver productos"
+          >
+            <span>{resumenData.totalProductos}</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <div className="metric-card-iphone metric-orders">
+          <div className="metric-icon-wrapper">
             <div className="metric-icon">📦</div>
-            <div className="metric-info">
-              <div className="metric-number">{formatearNumero(resumenData.totalPedidos)}</div>
-              <div className="metric-label">Total Pedidos</div>
-              <div className="metric-change">
-                <Badge variant="warning" size="small">
-                  {resumenData.pedidosPendientes} pendientes
-                </Badge>
-              </div>
-            </div>
           </div>
-        </Card>
+          <div className="metric-content-iphone">
+            <div className="metric-number-iphone">{formatearNumero(resumenData.totalPedidos)}</div>
+            <div className="metric-label-iphone">Total Pedidos</div>
+          </div>
+        </div>
 
-        <Card className="metric-card info">
-          <div className="metric-content">
+        <div className="metric-card-iphone metric-revenue">
+          <div className="metric-icon-wrapper">
             <div className="metric-icon">💰</div>
-            <div className="metric-info">
-              <div className="metric-number">{formatearMoneda(resumenData.ingresosTotales)}</div>
-              <div className="metric-label">Ingresos Totales</div>
-              <div className="metric-change">
-                <Badge variant="info" size="small">
-                  Este mes
-                </Badge>
-              </div>
-            </div>
           </div>
-        </Card>
+          <div className="metric-content-iphone">
+            <div className="metric-number-iphone">{formatearMoneda(resumenData.ingresosTotales)}</div>
+            <div className="metric-label-iphone">Ingresos Totales</div>
+          </div>
+          <button 
+            className="metric-action-btn"
+            onClick={() => onNavigate('estadisticas')}
+            title="Ver estadísticas"
+          >
+            <span>{formatearMoneda(resumenData.ingresosTotales)}</span>
+            <span>→</span>
+          </button>
+        </div>
       </div>
 
       {/* Acciones rápidas */}
@@ -321,7 +491,6 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
           <div className="quick-actions">
             <Button
               variant="primary"
-              icon="👥"
               onClick={() => onNavigate('usuarios')}
               className="quick-action-btn"
             >
@@ -329,7 +498,6 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
             </Button>
             <Button
               variant="success"
-              icon="🛍️"
               onClick={() => onNavigate('productos')}
               className="quick-action-btn"
             >
@@ -337,7 +505,6 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
             </Button>
             <Button
               variant="warning"
-              icon="📋"
               onClick={() => onNavigate('reportes')}
               className="quick-action-btn"
             >
@@ -345,7 +512,6 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
             </Button>
             <Button
               variant="info"
-              icon="📈"
               onClick={() => onNavigate('estadisticas')}
               className="quick-action-btn"
             >
@@ -356,42 +522,43 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
 
         <Card title="Alertas y Notificaciones" className="alerts-card">
           <div className="alerts-list">
-            <div className="alert-item warning">
-              <div className="alert-icon">⚠️</div>
-              <div className="alert-content">
-                <div className="alert-title">Reportes Pendientes</div>
-                <div className="alert-description">
-                  Tienes {resumenData.reportesPendientes} reportes pendientes de revisión
+            {resumenData.reportesPendientes > 0 && (
+              <div className="alert-item warning">
+                <div className="alert-content">
+                  <div className="alert-title">Reportes Pendientes</div>
+                  <div className="alert-description">
+                    Tienes {resumenData.reportesPendientes} reportes pendientes de revisión
+                  </div>
                 </div>
+                <Button
+                  size="small"
+                  variant="warning"
+                  onClick={() => onNavigate('reportes')}
+                >
+                  Revisar
+                </Button>
               </div>
-              <Button
-                size="small"
-                variant="warning"
-                onClick={() => onNavigate('reportes')}
-              >
-                Revisar
-              </Button>
-            </div>
+            )}
 
-            <div className="alert-item info">
-              <div className="alert-icon">📦</div>
-              <div className="alert-content">
-                <div className="alert-title">Pedidos Pendientes</div>
-                <div className="alert-description">
-                  {resumenData.pedidosPendientes} pedidos esperando procesamiento
+            {resumenData.pedidosPendientes > 0 && (
+              <div className="alert-item info">
+                <div className="alert-content">
+                  <div className="alert-title">Pedidos Pendientes</div>
+                  <div className="alert-description">
+                    {resumenData.pedidosPendientes} pedidos esperando procesamiento
+                  </div>
                 </div>
+                <Button
+                  size="small"
+                  variant="info"
+                  onClick={() => onNavigate('productos')}
+                >
+                  Ver
+                </Button>
               </div>
-              <Button
-                size="small"
-                variant="info"
-                onClick={() => onNavigate('productos')}
-              >
-                Ver
-              </Button>
-            </div>
+            )}
 
             <div className="alert-item success">
-              <div className="alert-icon">✅</div>
               <div className="alert-content">
                 <div className="alert-title">Sistema Operativo</div>
                 <div className="alert-description">
@@ -408,21 +575,18 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
         <Card title="Usuarios por Rol" className="stats-card">
           <div className="role-stats">
           <div className="role-item">
-            <div className="role-icon">👨‍💼</div>
             <div className="role-info">
               <div className="role-name">Administradores</div>
               <div className="role-count">{usuariosPorRol.admin}</div>
             </div>
           </div>
           <div className="role-item">
-            <div className="role-icon">🌱</div>
             <div className="role-info">
               <div className="role-name">Productores</div>
               <div className="role-count">{usuariosPorRol.productor}</div>
             </div>
           </div>
           <div className="role-item">
-            <div className="role-icon">🛒</div>
             <div className="role-info">
               <div className="role-name">Consumidores</div>
               <div className="role-count">{usuariosPorRol.consumidor}</div>
@@ -433,27 +597,55 @@ const OverviewScreen: React.FC<OverviewScreenProps> = ({ onNavigate }) => {
 
         <Card title="Actividad Reciente" className="activity-card">
           <div className="activity-list">
-            <div className="activity-item">
-              <div className="activity-icon">👤</div>
-              <div className="activity-content">
-                <div className="activity-description">Nuevo usuario registrado</div>
-                <div className="activity-time">Hace 5 minutos</div>
+            {actividadReciente.length > 0 ? (
+              actividadReciente.map((actividad) => {
+                const getActivityIcon = (tipo: string) => {
+                  switch (tipo) {
+                    case 'usuario_registrado': return '👤';
+                    case 'producto_creado': return '🛍️';
+                    case 'pedido_realizado': return '📦';
+                    case 'reporte_creado': return '📋';
+                    case 'mensaje_enviado': return '💬';
+                    case 'reseña_creada': return '⭐';
+                    default: return '📝';
+                  }
+                };
+
+                const formatTime = (timestamp: string) => {
+                  const date = new Date(timestamp);
+                  const now = new Date();
+                  const diff = now.getTime() - date.getTime();
+                  const minutes = Math.floor(diff / 60000);
+                  const hours = Math.floor(minutes / 60);
+                  const days = Math.floor(hours / 24);
+
+                  if (minutes < 1) return 'Hace un momento';
+                  if (minutes < 60) return `Hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+                  if (hours < 24) return `Hace ${hours} hora${hours > 1 ? 's' : ''}`;
+                  return `Hace ${days} día${days > 1 ? 's' : ''}`;
+                };
+
+                return (
+                  <div key={actividad.id} className="activity-item">
+                    <div className="activity-icon">{getActivityIcon(actividad.tipo)}</div>
+                    <div className="activity-content">
+                      <div className="activity-description">{actividad.descripcion}</div>
+                      <div className="activity-time">
+                        {actividad.timestamp ? formatTime(actividad.timestamp) : 'Reciente'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="activity-item">
+                <div className="activity-icon">📝</div>
+                <div className="activity-content">
+                  <div className="activity-description">No hay actividad reciente</div>
+                  <div className="activity-time">El sistema está en calma</div>
+                </div>
               </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">🛍️</div>
-              <div className="activity-content">
-                <div className="activity-description">Producto agregado</div>
-                <div className="activity-time">Hace 15 minutos</div>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon">📦</div>
-              <div className="activity-content">
-                <div className="activity-description">Pedido completado</div>
-                <div className="activity-time">Hace 30 minutos</div>
-              </div>
-            </div>
+            )}
           </div>
         </Card>
       </div>

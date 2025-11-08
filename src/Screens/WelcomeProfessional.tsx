@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import AgroStockLogo from '../components/AgroStockLogo';
 import { Button, Card, Input, Loading, Toast } from '../components/ReusableComponents';
 import { authService } from '../services/auth';
-import { productosService, ubicacionesService } from '../services/index';
+import { productosService, ubicacionesService, categoriasService } from '../services/index';
 import { useAuth } from '../contexts/AuthContext';
-import type { Producto, Ciudad } from '../types';
+import type { Producto, Ciudad, Categoria } from '../types';
 import '../assets/fondo.png';
 import './WelcomeProfessional.css';
 
@@ -22,6 +22,7 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
   const { login: contextLogin } = useAuth();
   const [productosDestacados, setProductosDestacados] = useState<Producto[]>([]);
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loadingProductos, setLoadingProductos] = useState(true);
 
   // Estados para formularios
@@ -37,26 +38,36 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
     confirmPassword: '',
     telefono: '',
     direccion: '',
-    id_ciudad: '',
+    id_ciudad: null as number | null,
     rol: 'consumidor' as 'consumidor' | 'productor'
   });
 
-  // Cargar productos destacados y ciudades
+  // Cargar productos destacados, ciudades y categorías
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const [productosRes, ciudadesRes] = await Promise.all([
-          productosService.obtenerProductosDisponibles({ limite: 6, pagina: 1 }),
-          ubicacionesService.listarCiudades()
+        setLoadingProductos(true);
+        const [productosRes, ciudadesRes, categoriasRes] = await Promise.all([
+          productosService.obtenerProductosDisponibles({ limite: 6, pagina: 1 }).catch(() => ({ success: false, data: [] })),
+          ubicacionesService.listarCiudades().catch(() => ({ success: false, data: [] })),
+          categoriasService.listarCategorias().catch(() => ({ success: false, data: [] }))
         ]);
 
-        if (productosRes.success && productosRes.data) {
-          setProductosDestacados(productosRes.data);
-        }
+        // Asegurar que siempre sea un array
+        const productos = productosRes?.data && Array.isArray(productosRes.data) 
+          ? productosRes.data 
+          : [];
+        setProductosDestacados(productos);
 
-        if (ciudadesRes.success && ciudadesRes.data) {
-          setCiudades(ciudadesRes.data);
-        }
+        const ciudades = ciudadesRes?.data && Array.isArray(ciudadesRes.data)
+          ? ciudadesRes.data
+          : [];
+        setCiudades(ciudades);
+
+        const categorias = categoriasRes?.data && Array.isArray(categoriasRes.data)
+          ? categoriasRes.data
+          : [];
+        setCategorias(categorias);
       } catch (error) {
         console.error('Error cargando datos:', error);
       } finally {
@@ -89,9 +100,10 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
           }
         }, 1500);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al iniciar sesión. Verifica tus credenciales.';
       setToast({ 
-        message: error.message || 'Error al iniciar sesión. Verifica tus credenciales.', 
+        message: errorMessage, 
         type: 'error' 
       });
     } finally {
@@ -114,7 +126,15 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
         throw new Error('Todos los campos son obligatorios');
       }
 
-      const response = await authService.register(registerData);
+      const response = await authService.register({
+        nombre: registerData.nombre,
+        email: registerData.email,
+        password: registerData.password,
+        telefono: registerData.telefono,
+        direccion: registerData.direccion,
+        id_ciudad: registerData.id_ciudad,
+        rol: registerData.rol
+      });
       
       if (response.success) {
         setToast({ 
@@ -124,9 +144,10 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
           setIsLogin(true);
           setLoginData({ email: registerData.email, password: '' });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al registrar. Intenta nuevamente.';
       setToast({ 
-        message: error.message || 'Error al registrar. Intenta nuevamente.', 
+        message: errorMessage, 
         type: 'error' 
       });
     } finally {
@@ -222,13 +243,13 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
           </div>
 
           {loadingProductos ? (
-            <Loading message="Cargando productos..." />
+            <Loading text="Cargando productos..." />
           ) : (
             <div className="productos-grid">
-              {productosDestacados.map((producto) => (
-                <Card 
-                  key={producto.id_producto} 
-                  className="producto-card"
+              {Array.isArray(productosDestacados) && productosDestacados.length > 0 ? (
+                productosDestacados.map((producto) => (
+                <div
+                  key={producto.id_producto}
                   onClick={() => {
                     if (onNavigate) {
                       onNavigate('productos');
@@ -236,10 +257,13 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
                   }}
                   style={{ cursor: 'pointer' }}
                 >
-                  {producto.imagenPrincipal && (
+                <Card 
+                  className="producto-card"
+                >
+                  {producto.imagen_principal && (
                     <div className="producto-imagen-container">
                       <img 
-                        src={producto.imagenPrincipal} 
+                        src={producto.imagen_principal} 
                         alt={producto.nombre}
                         className="producto-imagen"
                         onError={(e) => {
@@ -258,15 +282,16 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
                     </p>
                     <div className="producto-precio">
                       ${producto.precio?.toLocaleString('es-CO')}
-                      <span className="producto-unidad"> / {producto.unidadMedida}</span>
+                      <span className="producto-unidad"> / {producto.unidad_medida}</span>
                 </div>
                     <div className="producto-stock">
-                      Stock: {producto.stock} {producto.unidadMedida}
+                      Stock: {producto.stock} {producto.unidad_medida}
                 </div>
               </div>
                 </Card>
-              ))}
-              {productosDestacados.length === 0 && (
+                </div>
+                ))
+              ) : (
                 <p className="no-productos">
                   No hay productos disponibles en este momento.
                 </p>
@@ -473,36 +498,74 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
           </div>
 
           <div className="categories-grid">
-            <div className="category-card">
-              <div className="category-icon">🥕</div>
-              <h3 className="category-name">Verduras</h3>
-              <p className="category-count">150+ productos</p>
-            </div>
-            <div className="category-card">
-              <div className="category-icon">🍎</div>
-              <h3 className="category-name">Frutas</h3>
-              <p className="category-count">200+ productos</p>
-            </div>
-            <div className="category-card">
-              <div className="category-icon">🌾</div>
-              <h3 className="category-name">Granos</h3>
-              <p className="category-count">80+ productos</p>
-            </div>
-            <div className="category-card">
-              <div className="category-icon">🥛</div>
-              <h3 className="category-name">Lácteos</h3>
-              <p className="category-count">50+ productos</p>
-            </div>
-            <div className="category-card">
-              <div className="category-icon">🍯</div>
-              <h3 className="category-name">Procesados</h3>
-              <p className="category-count">100+ productos</p>
-            </div>
-            <div className="category-card">
-              <div className="category-icon">🌿</div>
-              <h3 className="category-name">Hierbas</h3>
-              <p className="category-count">40+ productos</p>
-            </div>
+            {categorias.length > 0 ? (
+              categorias.slice(0, 6).map((categoria) => {
+                // Iconos según el nombre de la categoría
+                const getCategoryIcon = (nombre: string) => {
+                  const nombreLower = nombre.toLowerCase();
+                  if (nombreLower.includes('fruta')) return '🍎';
+                  if (nombreLower.includes('verdura') || nombreLower.includes('hortaliza')) return '🥕';
+                  if (nombreLower.includes('grano') || nombreLower.includes('cereal')) return '🌾';
+                  if (nombreLower.includes('lácteo') || nombreLower.includes('leche')) return '🥛';
+                  if (nombreLower.includes('carne')) return '🥩';
+                  if (nombreLower.includes('artesanía')) return '🎨';
+                  return '🌾';
+                };
+
+                return (
+                  <div 
+                    key={categoria.id_categoria} 
+                    className="category-card"
+                    onClick={() => {
+                      if (onNavigate) {
+                        onNavigate('productos');
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="category-icon">{getCategoryIcon(categoria.nombre)}</div>
+                    <h3 className="category-name">{categoria.nombre}</h3>
+                    <p className="category-count">
+                      {categoria.descripcion || 'Productos disponibles'}
+                    </p>
+                  </div>
+                );
+              })
+            ) : (
+              // Categorías por defecto si no hay datos
+              <>
+                <div className="category-card">
+                  <div className="category-icon">🥕</div>
+                  <h3 className="category-name">Verduras</h3>
+                  <p className="category-count">Productos frescos</p>
+                </div>
+                <div className="category-card">
+                  <div className="category-icon">🍎</div>
+                  <h3 className="category-name">Frutas</h3>
+                  <p className="category-count">Productos frescos</p>
+                </div>
+                <div className="category-card">
+                  <div className="category-icon">🌾</div>
+                  <h3 className="category-name">Granos</h3>
+                  <p className="category-count">Productos frescos</p>
+                </div>
+                <div className="category-card">
+                  <div className="category-icon">🥛</div>
+                  <h3 className="category-name">Lácteos</h3>
+                  <p className="category-count">Productos frescos</p>
+                </div>
+                <div className="category-card">
+                  <div className="category-icon">🥩</div>
+                  <h3 className="category-name">Carnes</h3>
+                  <p className="category-count">Productos frescos</p>
+                </div>
+                <div className="category-card">
+                  <div className="category-icon">🎨</div>
+                  <h3 className="category-name">Artesanías</h3>
+                  <p className="category-count">Productos locales</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -718,8 +781,8 @@ export const WelcomeProfessional: React.FC<WelcomeProfessionalProps> = ({ onNavi
                   <label>Ciudad</label>
                     <select
                     className="input"
-                      value={registerData.id_ciudad}
-                      onChange={(e) => setRegisterData({ ...registerData, id_ciudad: e.target.value })}
+                      value={registerData.id_ciudad || ''}
+                      onChange={(e) => setRegisterData({ ...registerData, id_ciudad: e.target.value ? Number(e.target.value) : null })}
                       required
                   >
                     <option value="">Selecciona una ciudad</option>

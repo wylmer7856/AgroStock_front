@@ -56,3 +56,7 @@ Recursos para la página de error 404:
 - Ejemplo: `<img src="/assets/images/logo/agrostock-logo.png" />`
 - Optimiza las imágenes antes de subirlas (recomendado usar herramientas como TinyPNG)
 
+
+
+
+

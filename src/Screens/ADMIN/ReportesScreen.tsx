@@ -49,15 +49,22 @@ export const ReportesScreen: React.FC<ReportesScreenProps> = ({ onNavigate }) =>
         ...(busquedaDebounced && { descripcion: busquedaDebounced })
       };
       
+      console.log('[ReportesScreen] Cargando reportes con filtros:', filtrosCompletos);
       const response = await adminService.getReportes(filtrosCompletos);
+      console.log('[ReportesScreen] Respuesta recibida:', response);
       
       if (response.success && response.data) {
         setReportes(response.data);
+        console.log('[ReportesScreen] Reportes cargados:', response.data.length);
       } else {
-        setError(response.message || 'Error cargando reportes');
+        const errorMsg = response.message || 'Error cargando reportes';
+        console.error('[ReportesScreen] Error:', errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
+      console.error('[ReportesScreen] Excepción:', errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -107,9 +114,10 @@ export const ReportesScreen: React.FC<ReportesScreenProps> = ({ onNavigate }) =>
 
   const reportesFiltrados = reportes.filter(reporte =>
     !busquedaDebounced || 
-    reporte.descripcion.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
-    reporte.tipo_reporte.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
-    reporte.nombre_reportador.toLowerCase().includes(busquedaDebounced.toLowerCase())
+    reporte.descripcion?.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
+    reporte.tipo_reporte?.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
+    reporte.nombre_reportador?.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
+    reporte.elemento_reportado?.toLowerCase().includes(busquedaDebounced.toLowerCase())
   );
 
   const getTipoIcon = (tipo: string) => {
@@ -297,7 +305,7 @@ export const ReportesScreen: React.FC<ReportesScreenProps> = ({ onNavigate }) =>
                 <div className="reporte-header">
                   <div className="reporte-tipo">
                     <span className="tipo-icon">{getTipoIcon(reporte.tipo_reporte)}</span>
-                    <span className="tipo-nombre">{reporte.tipo_reporte.replace('_', ' ')}</span>
+                    <span className="tipo-nombre">{reporte.tipo_reporte.replace(/_/g, ' ')}</span>
                   </div>
                   <div className="reporte-estado">
                     <Badge 
@@ -342,7 +350,7 @@ export const ReportesScreen: React.FC<ReportesScreenProps> = ({ onNavigate }) =>
                       <div className="elemento-info">
                         <div className="elemento-tipo">
                           <Badge variant="info" size="small">
-                            {reporte.tipo_elemento}
+                            {reporte.tipo_elemento_display || (reporte.tipo_elemento === 'producto' ? 'Producto' : 'Usuario')}
                           </Badge>
                         </div>
                         <div className="elemento-descripcion">

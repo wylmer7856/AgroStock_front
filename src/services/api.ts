@@ -4,7 +4,7 @@ import { APP_CONFIG } from '../config';
 import type { ApiResponse, LoginResponse, AppError } from '../types';
 
 class ApiService {
-  private baseURL: string;
+  public baseURL: string;
   private token: string | null = null;
 
   constructor() {
@@ -49,6 +49,30 @@ class ApiService {
 
     const data = await response.json();
 
+    // Manejar errores de autenticación
+    if (response.status === 401) {
+      this.clearToken();
+      throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+    }
+
+    if (response.status === 403) {
+      throw new Error('No tienes permisos para realizar esta acción.');
+    }
+
+    // Normalizar respuesta: algunos endpoints devuelven {success, data} otros {success, categorias, usuarios, etc}
+    if (data.success && !data.data && (data.categorias || data.usuarios || data.productos || data.reportes || data.acciones || data.pedidos)) {
+      // Convertir a formato estándar
+      const key = data.categorias ? 'categorias' : 
+                  data.usuarios ? 'usuarios' : 
+                  data.productos ? 'productos' : 
+                  data.reportes ? 'reportes' : 
+                  data.acciones ? 'acciones' :
+                  data.pedidos ? 'pedidos' : null;
+      if (key) {
+        data.data = data[key];
+      }
+    }
+
     if (!response.ok) {
       // Manejar diferentes formatos de error del backend
       const errorMessage = data.message || 
@@ -58,12 +82,18 @@ class ApiService {
     }
 
     // Si la respuesta es exitosa pero no tiene el formato esperado, adaptarla
-    if (!data.success && data.data !== undefined) {
+    if (data.success === undefined && data.data !== undefined) {
       return {
         success: true,
         data: data.data || data,
         message: data.message || 'Operación exitosa'
       };
+    }
+
+    // Si la respuesta tiene success: false, lanzar error
+    if (data.success === false) {
+      const errorMsg = data.message || data.error || 'Error en la operación';
+      throw new Error(errorMsg);
     }
 
     return data;
@@ -73,7 +103,7 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {},
     includeAuth: boolean = true
-  ): Promise<ApiResponse<T>> {
+  ): Promise<ApiResponse<T> | any> {
     const url = `${this.baseURL}${endpoint}`;
     
     const config: RequestInit = {
@@ -85,10 +115,21 @@ class ApiService {
     };
 
     try {
+      console.log(`🌐 Making ${options.method || 'GET'} request to: ${url}`);
       const response = await fetch(url, config);
+      console.log(`✅ Response status: ${response.status} for ${url}`);
       return await this.handleResponse<T>(response);
-    } catch (error) {
-      console.error(`API Error [${options.method || 'GET'} ${endpoint}]:`, error);
+    } catch (error: any) {
+      console.error(`❌ API Error [${options.method || 'GET'} ${endpoint}]:`, error);
+      console.error(`   URL: ${url}`);
+      console.error(`   Error type: ${error?.name || 'Unknown'}`);
+      console.error(`   Error message: ${error?.message || 'No message'}`);
+      
+      // Proporcionar mensajes de error más descriptivos
+      if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+        throw new Error(`No se pudo conectar con el servidor. Verifica que el backend esté corriendo en ${this.baseURL}`);
+      }
+      
       throw error;
     }
   }

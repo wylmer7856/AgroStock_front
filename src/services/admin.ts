@@ -1,4 +1,4 @@
-// 👨‍💼 SERVICIO ESPECÍFICO PARA ADMINISTRACIÓN
+// SERVICIO ESPECÍFICO PARA ADMINISTRACIÓN
 
 import apiService from './api';
 import { APP_CONFIG } from '../config';
@@ -21,9 +21,9 @@ class AdminService {
   async getUsuarios(filtros?: FiltrosUsuarios): Promise<ApiResponse<UsuarioAdmin[]>> {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
-      // ✅ Endpoint correcto del backend
-      const response = await apiService.get<{usuarios: UsuarioAdmin[], total: number}>(
-        `/usuarios${queryString}`
+      // ✅ Endpoint correcto del backend - AdminRouter
+      const response = await apiService.get<{usuarios: UsuarioAdmin[], total: number} | UsuarioAdmin[]>(
+        `/admin/usuarios${queryString}`
       );
       
       // Adaptar la respuesta según la estructura del backend
@@ -64,8 +64,9 @@ class AdminService {
   // Crear usuario manualmente
   async crearUsuario(userData: Partial<UsuarioAdmin>): Promise<ApiResponse<UsuarioAdmin>> {
     try {
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.post<UsuarioAdmin>(
-        `/usuarios/crear`,
+        `/admin/usuarios/crear`,
         userData
       );
       return response;
@@ -108,9 +109,9 @@ class AdminService {
   async getProductos(filtros?: FiltrosProductos): Promise<ApiResponse<ProductoDetallado[]>> {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
-      // ✅ Endpoint correcto del backend - Admin tiene endpoint específico
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.get<{productos: ProductoDetallado[], total: number} | ProductoDetallado[]>(
-        `/productos${queryString}`
+        `/admin/productos${queryString}`
       );
       
       // Adaptar respuesta según estructura del backend
@@ -154,34 +155,41 @@ class AdminService {
 
   // ===== GESTIÓN DE REPORTES =====
   
-  // Obtener todos los reportes
+  // Obtener todos los reportes (basado en estructura real de BD)
   async getReportes(filtros?: any): Promise<ApiResponse<Reporte[]>> {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
-      // ✅ Endpoint correcto del backend
-      const response = await apiService.get<{reportes: Reporte[], total: number} | Reporte[]>(
-        `/reportes${queryString}`
+      // ✅ Endpoint correcto del backend - AdminRouter
+      const response = await apiService.get<any>(
+        `/admin/reportes${queryString}`
       );
       
-      // Adaptar respuesta
-      if (response.success && Array.isArray(response.data)) {
-        return {
-          success: response.success,
-          data: response.data,
-          message: response.message,
-        };
-      } else if (response.data && 'reportes' in response.data) {
-        return {
-          success: response.success,
-          data: (response.data as any).reportes || [],
-          message: response.message,
-        };
+      // El backend devuelve {success: true, data: [...], reportes: [...]}
+      let reportesData: Reporte[] = [];
+      
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          reportesData = response.data;
+        } else if ((response as any).reportes && Array.isArray((response as any).reportes)) {
+          reportesData = (response as any).reportes;
+        } else if (response.data && Array.isArray(response.data)) {
+          reportesData = response.data;
+        }
+        
+        // Normalizar campos para el frontend
+        reportesData = reportesData.map((r: any) => ({
+          ...r,
+          elemento_reportado: r.nombre_producto_reportado || r.nombre_usuario_reportado || 'N/A',
+          tipo_elemento_display: r.tipo_elemento === 'producto' ? 'Producto' : 'Usuario',
+          fecha_reporte: typeof r.fecha_reporte === 'string' ? r.fecha_reporte : new Date(r.fecha_reporte).toISOString(),
+          fecha_resolucion: r.fecha_resolucion ? (typeof r.fecha_resolucion === 'string' ? r.fecha_resolucion : new Date(r.fecha_resolucion).toISOString()) : undefined
+        }));
       }
       
       return {
         success: response.success,
-        data: [],
-        message: response.message,
+        data: reportesData,
+        message: response.message || `${reportesData.length} reportes encontrados`,
       };
     } catch (error) {
       console.error('Error obteniendo reportes:', error);
@@ -217,15 +225,204 @@ class AdminService {
     }
   }
 
+  // ===== GESTIÓN DE PEDIDOS =====
+  
+  // Obtener todos los pedidos
+  async getPedidos(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await apiService.get<any[]>(
+        `/pedidos`
+      );
+      
+      // Normalizar respuesta
+      let pedidosData: any[] = [];
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          pedidosData = response.data;
+        } else if ((response as any).pedidos && Array.isArray((response as any).pedidos)) {
+          pedidosData = (response as any).pedidos;
+        }
+      }
+      
+      return {
+        success: response.success,
+        data: pedidosData,
+        message: response.message || `${pedidosData.length} pedidos encontrados`
+      };
+    } catch (error) {
+      console.error('Error obteniendo pedidos:', error);
+      throw error;
+    }
+  }
+
+  // Actualizar estado de pedido
+  async actualizarEstadoPedido(id: number, estado: string): Promise<ApiResponse> {
+    try {
+      const response = await apiService.put(
+        `/pedidos/${id}`,
+        { estado }
+      );
+      return response;
+    } catch (error) {
+      console.error('Error actualizando estado del pedido:', error);
+      throw error;
+    }
+  }
+
+  // ===== GESTIÓN DE CATEGORÍAS =====
+  
+  // Obtener todas las categorías (admin)
+  async getCategorias(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await apiService.get<any[]>(
+        `/categorias/admin/todas`
+      );
+      
+      // Normalizar respuesta
+      let categoriasData: any[] = [];
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          categoriasData = response.data;
+        } else if ((response as any).categorias && Array.isArray((response as any).categorias)) {
+          categoriasData = (response as any).categorias;
+        }
+      }
+      
+      return {
+        success: response.success,
+        data: categoriasData,
+        message: response.message || `${categoriasData.length} categorías encontradas`
+      };
+    } catch (error) {
+      console.error('Error obteniendo categorías:', error);
+      throw error;
+    }
+  }
+
+  // Crear categoría
+  async crearCategoria(categoriaData: { nombre: string; descripcion?: string; activa?: boolean }): Promise<ApiResponse> {
+    try {
+      const response = await apiService.post(
+        `/categorias/admin/crear`,
+        categoriaData
+      );
+      return response;
+    } catch (error) {
+      console.error('Error creando categoría:', error);
+      throw error;
+    }
+  }
+
+  // Editar categoría
+  async editarCategoria(id: number, categoriaData: { nombre?: string; descripcion?: string; activa?: boolean }): Promise<ApiResponse> {
+    try {
+      const response = await apiService.put(
+        `/categorias/${id}`,
+        categoriaData
+      );
+      return response;
+    } catch (error) {
+      console.error('Error editando categoría:', error);
+      throw error;
+    }
+  }
+
+  // Eliminar categoría
+  async eliminarCategoria(id: number): Promise<ApiResponse> {
+    try {
+      const response = await apiService.delete(
+        `/categorias/${id}`
+      );
+      return response;
+    } catch (error) {
+      console.error('Error eliminando categoría:', error);
+      throw error;
+    }
+  }
+
+  // ===== GESTIÓN DE AUDITORÍA =====
+  
+  // Obtener logs de auditoría
+  async getAuditoriaLogs(filtros?: { tabla?: string; accion?: string; limite?: number }): Promise<ApiResponse<any[]>> {
+    try {
+      const queryString = filtros ? apiService.buildQueryString(filtros) : '';
+      const response = await apiService.get<any[]>(
+        `/auditoria/acciones${queryString}`
+      );
+      
+      // Normalizar respuesta
+      let logsData: any[] = [];
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          logsData = response.data;
+        } else if ((response as any).acciones && Array.isArray((response as any).acciones)) {
+          logsData = (response as any).acciones;
+        } else if ((response as any).logs && Array.isArray((response as any).logs)) {
+          logsData = (response as any).logs;
+        }
+      }
+      
+      return {
+        success: response.success,
+        data: logsData,
+        message: response.message || `${logsData.length} registros de auditoría encontrados`
+      };
+    } catch (error) {
+      console.error('Error obteniendo logs de auditoría:', error);
+      throw error;
+    }
+  }
+
+  // ===== CONFIGURACIÓN DEL SISTEMA =====
+  
+  // Obtener configuración del sistema
+  async getSystemConfig(): Promise<ApiResponse<any>> {
+    try {
+      // Por ahora retornamos configuración por defecto
+      // En el futuro esto puede venir de una tabla de configuración
+      return {
+        success: true,
+        data: {
+          nombre_sistema: 'AgroStock',
+          version: '1.0.0',
+          mantenimiento: false,
+          limite_usuarios: 1000,
+          limite_productos: 10000,
+          dias_expiracion_reportes: 30
+        },
+        message: 'Configuración obtenida correctamente'
+      };
+    } catch (error) {
+      console.error('Error obteniendo configuración:', error);
+      throw error;
+    }
+  }
+
+  // Actualizar configuración del sistema
+  async updateSystemConfig(config: any): Promise<ApiResponse> {
+    try {
+      // Por ahora solo retornamos éxito
+      // En el futuro esto puede guardarse en una tabla de configuración
+      return {
+        success: true,
+        data: config,
+        message: 'Configuración actualizada correctamente'
+      };
+    } catch (error) {
+      console.error('Error actualizando configuración:', error);
+      throw error;
+    }
+  }
+
   // ===== ESTADÍSTICAS Y MÉTRICAS =====
   
   // Obtener estadísticas generales
   async getEstadisticasGenerales(periodo?: string): Promise<ApiResponse<EstadisticasGenerales>> {
     try {
       const queryString = periodo ? `?periodo=${periodo}` : '';
-      // ✅ Endpoint correcto del backend
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.get<EstadisticasGenerales>(
-        `/estadisticas${queryString}`
+        `/admin/estadisticas${queryString}`
       );
       
       // Adaptar respuesta según estructura del backend
@@ -251,9 +448,9 @@ class AdminService {
   // Obtener actividad reciente
   async getActividadReciente(): Promise<ApiResponse<ActividadReciente[]>> {
     try {
-      // ✅ Endpoint correcto del backend
+      // ✅ Endpoint correcto del backend - AdminRouter
       const response = await apiService.get<{actividad: ActividadReciente[]} | ActividadReciente[]>(
-        `/actividad-reciente`
+        `/admin/actividad-reciente`
       );
       
       // Adaptar respuesta
@@ -288,7 +485,7 @@ class AdminService {
   async accederPanelProductor(idUsuario: number): Promise<ApiResponse> {
     try {
       const response = await apiService.get(
-        `${APP_CONFIG.API_ENDPOINTS.ADMIN.USUARIOS}/${idUsuario}/productor`
+        `/admin/usuario/${idUsuario}/productor`
       );
       return response;
     } catch (error) {
@@ -301,7 +498,7 @@ class AdminService {
   async accederPanelConsumidor(idUsuario: number): Promise<ApiResponse> {
     try {
       const response = await apiService.get(
-        `${APP_CONFIG.API_ENDPOINTS.ADMIN.USUARIOS}/${idUsuario}/consumidor`
+        `/admin/usuario/${idUsuario}/consumidor`
       );
       return response;
     } catch (error) {

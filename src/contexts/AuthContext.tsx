@@ -104,6 +104,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const isValid = await authService.refreshTokenIfNeeded();
           if (isValid) {
             dispatch({ type: 'SET_USER', payload: user });
+            // Redirigir según el rol si el usuario ya está autenticado
+            const view: AppView = user.rol === 'admin' ? 'admin' : 
+                                 user.rol === 'productor' ? 'productor' : 'consumidor';
+            dispatch({ type: 'SET_VIEW', payload: view });
           } else {
             dispatch({ type: 'LOGOUT' });
           }
@@ -112,7 +116,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Error verificando autenticación:', error);
-        dispatch({ type: 'SET_ERROR', payload: 'Error verificando autenticación' });
+        // No bloquear la app si hay error, solo mostrar como no autenticado
+        dispatch({ type: 'SET_USER', payload: null });
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false });
       }
     };
 
@@ -128,8 +135,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Redirigir según el rol
       const view: AppView = user.rol === 'admin' ? 'admin' : 
                            user.rol === 'productor' ? 'productor' : 'consumidor';
-      dispatch({ type: 'SET_VIEW', payload: view });
       
+      dispatch({ type: 'SET_VIEW', payload: view });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error en el login';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
@@ -144,8 +151,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await authService.register(userData);
       
-      // Después del registro exitoso, cambiar a login
-      dispatch({ type: 'SET_VIEW', payload: 'login' });
+      // Después del registro exitoso, cambiar a auth (pantalla de login)
+      dispatch({ type: 'SET_VIEW', payload: 'auth' });
       dispatch({ type: 'SET_LOADING', payload: false });
       
     } catch (error) {
@@ -239,7 +246,7 @@ export const useIsConsumer = (): boolean => {
 // Hook para obtener el ID del usuario actual
 export const useCurrentUserId = (): number | null => {
   const { user } = useAuth();
-  return user?.id || null;
+  return user?.id_usuario || user?.id || null;
 };
 
 export default AuthContext;

@@ -3,15 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { usePagination, useDebounce } from '../../hooks';
 import adminService from '../../services/admin';
+import { ubicacionesService } from '../../services';
 import { Card, Button, Input, Modal, Loading, Badge, Avatar, Toast } from '../../components/ReusableComponents';
-import type { UsuarioAdmin, FiltrosUsuarios } from '../../types';
+import type { UsuarioAdmin, FiltrosUsuarios, Ciudad } from '../../types';
 import './AdminScreens.css';
 
 interface UsuariosScreenProps {
   onNavigate: (view: string) => void;
 }
 
-export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
+export const UsuariosScreen: React.FC<UsuariosScreenProps> = ({ onNavigate }) => {
   // ===== ESTADOS =====
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,15 +35,22 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
         ...(busquedaDebounced && { busqueda: busquedaDebounced })
       };
       
+      console.log('[UsuariosScreen] Cargando usuarios con filtros:', filtrosCompletos);
       const response = await adminService.getUsuarios(filtrosCompletos);
+      console.log('[UsuariosScreen] Respuesta recibida:', response);
       
       if (response.success && response.data) {
         setUsuarios(response.data);
+        console.log('[UsuariosScreen] Usuarios cargados:', response.data.length);
       } else {
-        setError(response.message || 'Error cargando usuarios');
+        const errorMsg = response.message || 'Error cargando usuarios';
+        console.error('[UsuariosScreen] Error:', errorMsg);
+        setError(errorMsg);
       }
-    } catch {
-      setError('Error desconocido');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
+      console.error('[UsuariosScreen] Excepción:', errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -92,10 +100,10 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
         );
         mostrarToast(`Usuario ${activo ? 'activado' : 'desactivado'} exitosamente`, 'success');
       } else {
-        mostrarToast(response.message || 'Error actualizando usuario', 'error');
+        mostrarToast(response.message || 'Error cambiando estado', 'error');
       }
     } catch {
-      mostrarToast('Error actualizando usuario', 'error');
+      mostrarToast('Error cambiando estado', 'error');
     }
   };
 
@@ -109,32 +117,30 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
     setTimeout(() => setToast(null), 5000);
   };
 
+  // Filtrar usuarios localmente
   const usuariosFiltrados = usuarios.filter(usuario =>
     !busquedaDebounced || 
-    usuario.nombre.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
-    usuario.email.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
-    usuario.telefono.includes(busquedaDebounced)
+    usuario.nombre?.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
+    usuario.email?.toLowerCase().includes(busquedaDebounced.toLowerCase()) ||
+    usuario.telefono?.toLowerCase().includes(busquedaDebounced.toLowerCase())
   );
 
   return (
-    <div className="usuarios-screen">
-      {/* Header */}
+    <div className="screen-container">
       <div className="screen-header">
         <div className="header-content">
           <h1>Gestión de Usuarios</h1>
-          <p>Administra todos los usuarios de la plataforma</p>
+          <p>Administra todos los usuarios del sistema</p>
         </div>
         <div className="header-actions">
           <Button
             variant="primary"
-            icon="➕"
             onClick={() => setShowCreateModal(true)}
           >
-            Crear Usuario
+            Nuevo Usuario
           </Button>
           <Button
             variant="secondary"
-            icon="🔄"
             onClick={cargarUsuarios}
             loading={loading}
           >
@@ -152,7 +158,6 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
               placeholder="Nombre, email o teléfono..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              icon="🔍"
             />
           </div>
           
@@ -162,11 +167,11 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
               value={filtros.rol || ''}
               onChange={(e) => setFiltros(prev => ({ 
                 ...prev, 
-                rol: e.target.value || undefined 
+                rol: e.target.value || undefined
               }))}
             >
               <option value="">Todos los roles</option>
-              <option value="admin">Administrador</option>
+              <option value="admin">Admin</option>
               <option value="productor">Productor</option>
               <option value="consumidor">Consumidor</option>
             </select>
@@ -181,30 +186,15 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
                 activo: e.target.value === '' ? undefined : e.target.value === 'true'
               }))}
             >
-              <option value="">Todos los estados</option>
+              <option value="">Todos</option>
               <option value="true">Activos</option>
               <option value="false">Inactivos</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Verificación:</label>
-            <select
-              value={filtros.email_verificado === undefined ? '' : filtros.email_verificado.toString()}
-              onChange={(e) => setFiltros(prev => ({ 
-                ...prev, 
-                email_verificado: e.target.value === '' ? undefined : e.target.value === 'true'
-              }))}
-            >
-              <option value="">Todos</option>
-              <option value="true">Email verificado</option>
-              <option value="false">Email no verificado</option>
             </select>
           </div>
         </div>
       </Card>
 
-      {/* Lista de usuarios */}
+      {/* Lista de usuarios en tarjetas */}
       <Card 
         title={`Usuarios encontrados (${usuariosFiltrados.length})`}
         className="usuarios-list-card"
@@ -213,7 +203,7 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
           <Loading text="Cargando usuarios..." />
         ) : error ? (
           <div className="error-message">
-            <p>❌ {error}</p>
+            <p>{error}</p>
             <Button variant="primary" onClick={cargarUsuarios}>
               Reintentar
             </Button>
@@ -228,116 +218,113 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
             </Button>
           </div>
         ) : (
-          <div className="usuarios-table">
-            {/* Header de la tabla */}
-            <div className="table-header">
-              <div className="table-cell">Usuario</div>
-              <div className="table-cell">Contacto</div>
-              <div className="table-cell">Rol</div>
-              <div className="table-cell">Estado</div>
-              <div className="table-cell">Registro</div>
-              <div className="table-cell">Acciones</div>
-            </div>
-            
-            {/* Filas de usuarios */}
+          <div className="usuarios-cards-grid">
             {usuariosFiltrados.map((usuario) => (
-              <div key={usuario.id_usuario} className="table-row">
-                {/* Información del usuario */}
-                <div className="table-cell">
-                  <div className="user-info">
-                    <Avatar name={usuario.nombre} size="medium" />
-                    <div className="user-details">
-                      <div className="user-name">{usuario.nombre}</div>
-                      <div className="user-id">ID: {usuario.id_usuario}</div>
+              <Card key={usuario.id_usuario} className="usuario-card">
+                <div className="usuario-card-header">
+                  <div className="usuario-avatar-section">
+                    <Avatar name={usuario.nombre} size="large" />
+                    <div className="usuario-basic-info">
+                      <h3 className="usuario-nombre">{usuario.nombre}</h3>
+                      <div className="usuario-id">ID: {usuario.id_usuario}</div>
                     </div>
                   </div>
-                </div>
-                
-                {/* Información de contacto */}
-                <div className="table-cell">
-                  <div className="contact-info">
-                    <div className="contact-item">
-                      <span className="contact-icon">📧</span>
-                      <span className="contact-value">{usuario.email}</span>
-                    </div>
-                    <div className="contact-item">
-                      <span className="contact-icon">📞</span>
-                      <span className="contact-value">{usuario.telefono}</span>
-                    </div>
-                    <div className="verification-badges">
-                      {usuario.email_verificado && (
-                        <Badge variant="success" size="small">Email ✓</Badge>
-                      )}
-                      {usuario.telefono_verificado && (
-                        <Badge variant="success" size="small">Tel ✓</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Rol */}
-                <div className="table-cell">
-                  <Badge 
-                    variant={
-                      usuario.rol === 'admin' ? 'error' : 
-                      usuario.rol === 'productor' ? 'warning' : 'info'
-                    }
-                    size="medium"
-                  >
-                    {usuario.rol === 'admin' && '👨‍💼'}
-                    {usuario.rol === 'productor' && '🌱'}
-                    {usuario.rol === 'consumidor' && '🛒'}
-                    {' '}{usuario.rol}
-                  </Badge>
-                </div>
-                
-                {/* Estado */}
-                <div className="table-cell">
-                  <div className="status-info">
+                  <div className="usuario-badges">
+                    <Badge 
+                      variant={
+                        usuario.rol === 'admin' ? 'error' : 
+                        usuario.rol === 'productor' ? 'warning' : 'info'
+                      }
+                      size="medium"
+                    >
+                      {usuario.rol === 'admin' && '👨‍💼'}
+                      {usuario.rol === 'productor' && '🌱'}
+                      {usuario.rol === 'consumidor' && '🛒'}
+                      {' '}{usuario.rol}
+                    </Badge>
                     <Badge 
                       variant={usuario.activo ? 'success' : 'error'}
                       size="medium"
                     >
                       {usuario.activo ? '✅ Activo' : '❌ Inactivo'}
                     </Badge>
+                  </div>
+                </div>
+
+                <div className="usuario-card-body">
+                  <div className="usuario-contact-info">
+                    <div className="contact-item">
+                      <span className="contact-icon">📧</span>
+                      <span className="contact-value">{usuario.email}</span>
+                      {usuario.email_verificado && (
+                        <Badge variant="success" size="small">✓</Badge>
+                      )}
+                    </div>
+                    <div className="contact-item">
+                      <span className="contact-icon">📞</span>
+                      <span className="contact-value">{usuario.telefono || 'N/A'}</span>
+                      {usuario.telefono_verificado && (
+                        <Badge variant="success" size="small">✓</Badge>
+                      )}
+                    </div>
                     {usuario.ubicacion && (
-                      <div className="location-info">
-                        📍 {usuario.ubicacion.ciudad}, {usuario.ubicacion.departamento}
+                      <div className="contact-item">
+                        <span className="contact-icon">📍</span>
+                        <span className="contact-value">
+                          {usuario.ubicacion.ciudad}, {usuario.ubicacion.departamento}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="usuario-meta-info">
+                    <div className="meta-item">
+                      <span className="meta-label">Registro:</span>
+                      <span className="meta-value">
+                        {new Date(usuario.fecha_registro).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {usuario.ultimo_acceso && (
+                      <div className="meta-item">
+                        <span className="meta-label">Último acceso:</span>
+                        <span className="meta-value">
+                          {new Date(usuario.ultimo_acceso).toLocaleDateString()}
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
-                
-                {/* Fecha de registro */}
-                <div className="table-cell">
-                  <div className="registration-info">
-                    <div className="registration-date">
-                      {new Date(usuario.fecha_registro).toLocaleDateString()}
-                    </div>
-                    <div className="last-access">
-                      Último acceso: {usuario.ultimo_acceso ? 
-                        new Date(usuario.ultimo_acceso).toLocaleDateString() : 
-                        'Nunca'
-                      }
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Acciones */}
-                <div className="table-cell">
-                  <div className="action-buttons">
+
+                <div className="usuario-card-footer">
+                  <div className="usuario-actions">
                     <Button
                       size="small"
                       variant="secondary"
-                      icon="✏️"
                       onClick={() => handleEditarUsuario(usuario)}
                     >
                       Editar
                     </Button>
+                    {usuario.rol === 'productor' && (
+                      <Button
+                        size="small"
+                        variant="info"
+                        onClick={() => onNavigate('productor')}
+                      >
+                        Panel Productor
+                      </Button>
+                    )}
+                    {usuario.rol === 'consumidor' && (
+                      <Button
+                        size="small"
+                        variant="info"
+                        onClick={() => onNavigate('consumidor')}
+                      >
+                        Panel Consumidor
+                      </Button>
+                    )}
                     <Button
                       size="small"
                       variant={usuario.activo ? 'warning' : 'success'}
-                      icon={usuario.activo ? '⏸️' : '▶️'}
                       onClick={() => handleCambiarEstadoUsuario(usuario.id_usuario, !usuario.activo)}
                     >
                       {usuario.activo ? 'Desactivar' : 'Activar'}
@@ -345,14 +332,13 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
                     <Button
                       size="small"
                       variant="danger"
-                      icon="🗑️"
                       onClick={() => handleEliminarUsuario(usuario.id_usuario)}
                     >
                       Eliminar
                     </Button>
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -388,36 +374,6 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
         </div>
       )}
 
-      {/* Modales */}
-      {showCreateModal && (
-        <CreateUserModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            cargarUsuarios();
-            mostrarToast('Usuario creado exitosamente', 'success');
-          }}
-        />
-      )}
-
-      {showEditModal && usuarioSeleccionado && (
-        <EditUserModal
-          isOpen={showEditModal}
-          onClose={() => {
-            setShowEditModal(false);
-            setUsuarioSeleccionado(null);
-          }}
-          usuario={usuarioSeleccionado}
-          onSuccess={() => {
-            setShowEditModal(false);
-            setUsuarioSeleccionado(null);
-            cargarUsuarios();
-            mostrarToast('Usuario actualizado exitosamente', 'success');
-          }}
-        />
-      )}
-
       {/* Toast de notificaciones */}
       {toast && (
         <Toast
@@ -429,314 +385,3 @@ export const UsuariosScreen: React.FC<UsuariosScreenProps> = () => {
     </div>
   );
 };
-
-// ===== MODAL PARA CREAR USUARIO =====
-interface CreateUserModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-const CreateUserModal: React.FC<CreateUserModalProps> = ({
-  isOpen,
-  onClose,
-  onSuccess
-}) => {
-  const [formData, setFormData] = useState({
-    nombre: '',
-    email: '',
-    password: '',
-    telefono: '',
-    direccion: '',
-    id_ciudad: 1,
-    rol: 'consumidor' as 'admin' | 'consumidor' | 'productor'
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await adminService.crearUsuario(formData);
-      
-      if (response.success) {
-        onSuccess();
-      } else {
-        setError(response.message || 'Error creando usuario');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: string | number | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (error) setError(null);
-  };
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Crear Nuevo Usuario"
-      size="large"
-    >
-      <form onSubmit={handleSubmit} className="user-form">
-        <div className="form-grid">
-          <div className="form-group">
-            <Input
-              label="Nombre completo"
-              value={formData.nombre}
-              onChange={(e) => handleInputChange('nombre', e.target.value)}
-              required
-              placeholder="Ej: Juan Pérez"
-            />
-          </div>
-          
-          <div className="form-group">
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-              placeholder="usuario@ejemplo.com"
-            />
-          </div>
-          
-          <div className="form-group">
-            <Input
-              label="Contraseña"
-              type="password"
-              value={formData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              required
-              placeholder="Mínimo 6 caracteres"
-            />
-          </div>
-          
-          <div className="form-group">
-            <Input
-              label="Teléfono"
-              value={formData.telefono}
-              onChange={(e) => handleInputChange('telefono', e.target.value)}
-              required
-              placeholder="+57 300 123 4567"
-            />
-          </div>
-          
-          <div className="form-group">
-            <Input
-              label="Dirección"
-              value={formData.direccion}
-              onChange={(e) => handleInputChange('direccion', e.target.value)}
-              required
-              placeholder="Dirección completa"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Rol del usuario:</label>
-            <select
-              value={formData.rol}
-              onChange={(e) => handleInputChange('rol', e.target.value)}
-            >
-              <option value="consumidor">🛒 Consumidor</option>
-              <option value="productor">🌱 Productor</option>
-              <option value="admin">👨‍💼 Administrador</option>
-            </select>
-          </div>
-        </div>
-        
-        {error && (
-          <div className="form-error">
-            <span className="error-icon">❌</span>
-            <span>{error}</span>
-          </div>
-        )}
-        
-        <div className="form-actions">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            loading={loading}
-            icon="➕"
-          >
-            Crear Usuario
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
-
-// ===== MODAL PARA EDITAR USUARIO =====
-interface EditUserModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  usuario: UsuarioAdmin;
-  onSuccess: () => void;
-}
-
-const EditUserModal: React.FC<EditUserModalProps> = ({
-  isOpen,
-  onClose,
-  usuario,
-  onSuccess
-}) => {
-  const [formData, setFormData] = useState({
-    nombre: usuario.nombre,
-    email: usuario.email,
-    telefono: usuario.telefono,
-    direccion: usuario.direccion,
-    rol: usuario.rol,
-    activo: usuario.activo
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await adminService.editarUsuario(usuario.id_usuario, formData);
-      
-      if (response.success) {
-        onSuccess();
-      } else {
-        setError(response.message || 'Error actualizando usuario');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: string | number | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (error) setError(null);
-  };
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`Editar Usuario: ${usuario.nombre}`}
-      size="large"
-    >
-      <form onSubmit={handleSubmit} className="user-form">
-        <div className="form-grid">
-          <div className="form-group">
-            <Input
-              label="Nombre completo"
-              value={formData.nombre}
-              onChange={(e) => handleInputChange('nombre', e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <Input
-              label="Teléfono"
-              value={formData.telefono}
-              onChange={(e) => handleInputChange('telefono', e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <Input
-              label="Dirección"
-              value={formData.direccion}
-              onChange={(e) => handleInputChange('direccion', e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Rol del usuario:</label>
-            <select
-              value={formData.rol}
-              onChange={(e) => handleInputChange('rol', e.target.value)}
-            >
-              <option value="consumidor">🛒 Consumidor</option>
-              <option value="productor">🌱 Productor</option>
-              <option value="admin">👨‍💼 Administrador</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Estado del usuario:</label>
-            <select
-              value={formData.activo.toString()}
-              onChange={(e) => handleInputChange('activo', e.target.value === 'true')}
-            >
-              <option value="true">✅ Activo</option>
-              <option value="false">❌ Inactivo</option>
-            </select>
-          </div>
-        </div>
-        
-        {error && (
-          <div className="form-error">
-            <span className="error-icon">❌</span>
-            <span>{error}</span>
-          </div>
-        )}
-        
-        <div className="form-actions">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            loading={loading}
-            icon="💾"
-          >
-            Guardar Cambios
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
-
-export default UsuariosScreen;
-
-
-
-

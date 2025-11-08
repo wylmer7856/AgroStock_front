@@ -48,15 +48,22 @@ export const ProductosScreen: React.FC<ProductosScreenProps> = ({ onNavigate }) 
         ...(busquedaDebounced && { nombre: busquedaDebounced })
       };
       
+      console.log('[ProductosScreen] Cargando productos con filtros:', filtrosCompletos);
       const response = await adminService.getProductos(filtrosCompletos);
+      console.log('[ProductosScreen] Respuesta recibida:', response);
       
       if (response.success && response.data) {
         setProductos(response.data);
+        console.log('[ProductosScreen] Productos cargados:', response.data.length);
       } else {
-        setError(response.message || 'Error cargando productos');
+        const errorMsg = response.message || 'Error cargando productos';
+        console.error('[ProductosScreen] Error:', errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
+      console.error('[ProductosScreen] Excepción:', errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -245,12 +252,12 @@ export const ProductosScreen: React.FC<ProductosScreenProps> = ({ onNavigate }) 
                     <div className="detail-item">
                       <span className="detail-label">Stock:</span>
                       <span className={`detail-value ${producto.stock === 0 ? 'out-of-stock' : ''}`}>
-                        {producto.stock} {producto.unidadMedida || 'unidades'}
+                        {producto.stock} {producto.unidad_medida}
                       </span>
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Stock mínimo:</span>
-                      <span className="detail-value">{producto.stockMinimo}</span>
+                      <span className="detail-value">{producto.stock_minimo}</span>
                     </div>
                   </div>
 

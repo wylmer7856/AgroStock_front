@@ -10,27 +10,32 @@ import type {
 
 class ProductosService {
   
-  // ===== LISTAR PRODUCTOS =====
+  // ===== LISTAR PRODUCTOS (PÚBLICO - SIN AUTENTICACIÓN) =====
   async listarProductos(filtros?: FiltrosProductos): Promise<ApiResponse<Producto[]>> {
     try {
       const queryString = filtros ? apiService.buildQueryString(filtros) : '';
+      // ✅ Endpoint público - no requiere autenticación
       const response = await apiService.get<Producto[]>(
-        `/productos${queryString}`
+        `/productos${queryString}`,
+        false // No incluir token de autenticación
       );
       
-      if (response.success && Array.isArray(response.data)) {
-        return {
-          success: response.success,
-          data: response.data,
-          message: response.message,
-          pagination: response.pagination
-        };
+      // El backend puede devolver {success, data} o {success, productos}
+      let productosData: Producto[] = [];
+      
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          productosData = response.data;
+        } else if ((response as any).productos && Array.isArray((response as any).productos)) {
+          productosData = (response as any).productos;
+        }
       }
       
       return {
         success: response.success,
-        data: [],
-        message: response.message || 'No se encontraron productos',
+        data: productosData,
+        message: response.message || `${productosData.length} productos encontrados`,
+        pagination: response.pagination
       };
     } catch (error) {
       console.error('Error listando productos:', error);
@@ -38,11 +43,13 @@ class ProductosService {
     }
   }
 
-  // ===== OBTENER PRODUCTO POR ID =====
+  // ===== OBTENER PRODUCTO POR ID (PÚBLICO - SIN AUTENTICACIÓN) =====
   async obtenerProducto(id: number): Promise<ApiResponse<ProductoDetallado>> {
     try {
+      // ✅ Endpoint público - no requiere autenticación
       const response = await apiService.get<ProductoDetallado>(
-        `/productos/${id}`
+        `/productos/${id}`,
+        false // No incluir token de autenticación
       );
       return response;
     } catch (error) {
@@ -92,15 +99,32 @@ class ProductosService {
     }
   }
 
-  // ===== BUSCAR PRODUCTOS =====
+  // ===== BUSCAR PRODUCTOS (PÚBLICO - SIN AUTENTICACIÓN) =====
   async buscarProductos(termino: string, filtros?: FiltrosProductos): Promise<ApiResponse<Producto[]>> {
     try {
       const queryParams = { ...filtros, nombre: termino };
       const queryString = apiService.buildQueryString(queryParams);
+      // ✅ Endpoint público - no requiere autenticación
       const response = await apiService.get<Producto[]>(
-        `/productos/buscar${queryString}`
+        `/productos/buscar${queryString}`,
+        false // No incluir token de autenticación
       );
-      return response;
+      
+      // Normalizar respuesta
+      let productosData: Producto[] = [];
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          productosData = response.data;
+        } else if ((response as any).productos && Array.isArray((response as any).productos)) {
+          productosData = (response as any).productos;
+        }
+      }
+      
+      return {
+        success: response.success,
+        data: productosData,
+        message: response.message || `${productosData.length} productos encontrados`
+      };
     } catch (error) {
       console.error('Error buscando productos:', error);
       throw error;
@@ -120,15 +144,32 @@ class ProductosService {
     }
   }
 
-  // ===== OBTENER PRODUCTOS DISPONIBLES =====
+  // ===== OBTENER PRODUCTOS DISPONIBLES (PÚBLICO - SIN AUTENTICACIÓN) =====
   async obtenerProductosDisponibles(filtros?: FiltrosProductos): Promise<ApiResponse<Producto[]>> {
     try {
       const queryParams = { ...filtros, disponible: true };
       const queryString = apiService.buildQueryString(queryParams);
+      // ✅ Endpoint público - no requiere autenticación
       const response = await apiService.get<Producto[]>(
-        `/productos/disponibles${queryString}`
+        `/productos/disponibles${queryString}`,
+        false // No incluir token de autenticación
       );
-      return response;
+      
+      // Normalizar respuesta
+      let productosData: Producto[] = [];
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          productosData = response.data;
+        } else if ((response as any).productos && Array.isArray((response as any).productos)) {
+          productosData = (response as any).productos;
+        }
+      }
+      
+      return {
+        success: response.success,
+        data: productosData,
+        message: response.message || `${productosData.length} productos disponibles`
+      };
     } catch (error) {
       console.error('Error obteniendo productos disponibles:', error);
       throw error;
@@ -138,4 +179,5 @@ class ProductosService {
 
 export const productosService = new ProductosService();
 export default productosService;
+
 

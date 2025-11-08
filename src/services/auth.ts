@@ -15,37 +15,69 @@ class AuthService {
   // ===== LOGIN =====
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      const response = await apiService.post<LoginResponse>(
+      const response = await apiService.post<any>(
         `/auth/login`,
         credentials,
         false // No incluir token de autenticación para login
       );
-
-      // El backend puede devolver directamente LoginResponse o dentro de data
-      const loginData = response.data || response;
       
-      if (loginData && loginData.token) {
-        // Guardar token y datos del usuario
-        apiService.setToken(loginData.token);
-        this.saveUserData(loginData.usuario);
-        if (loginData.session_id) {
-          this.saveSessionData(loginData.session_id);
-        }
-        
-        return loginData;
-      } else if (response.success && response.data) {
-        // Si viene envuelto en response.data
-        apiService.setToken(response.data.token);
-        this.saveUserData(response.data.usuario);
-        if (response.data.session_id) {
-          this.saveSessionData(response.data.session_id);
-        }
-        return response.data;
-      } else {
-        throw new Error(response.message || 'Error en el login');
+      // El backend real devuelve { success: true, token, usuario, ... } directamente
+      // NO viene envuelto en response.data
+      if (!response.success) {
+        throw new Error(response.message || response.error || 'Error en el login');
       }
+      
+      const loginData = response;
+      
+      // Validar que tenga los datos necesarios
+      if (!loginData.token) {
+        throw new Error('No se recibió token del servidor');
+      }
+      
+      // El backend real devuelve 'usuario'
+      if (!loginData.usuario) {
+        throw new Error('No se recibió información del usuario');
+      }
+      
+      const usuarioBackend = loginData.usuario as any;
+      
+      // Normalizar el usuario: asegurar que tenga id_usuario
+      const usuarioNormalizado: User = {
+        id_usuario: usuarioBackend.id_usuario || usuarioBackend.id || 0,
+        nombre: usuarioBackend.nombre || '',
+        email: usuarioBackend.email || '',
+        rol: usuarioBackend.rol || 'consumidor',
+        telefono: usuarioBackend.telefono || null,
+        direccion: usuarioBackend.direccion || null,
+        id_ciudad: usuarioBackend.id_ciudad || null,
+        activo: usuarioBackend.activo !== undefined ? usuarioBackend.activo : true,
+        email_verificado: usuarioBackend.email_verificado || false,
+        foto_perfil: usuarioBackend.foto_perfil || null,
+        fecha_registro: usuarioBackend.fecha_registro || null,
+        ultimo_acceso: usuarioBackend.ultimo_acceso || null,
+        // Compatibilidad
+        id: usuarioBackend.id_usuario || usuarioBackend.id || 0
+      };
+      
+      // Guardar token y datos del usuario
+      apiService.setToken(loginData.token);
+      this.saveUserData(usuarioNormalizado);
+      if (loginData.session_id) {
+        this.saveSessionData(loginData.session_id);
+      }
+      
+      // Retornar LoginResponse con usuario normalizado
+      const loginResponse: LoginResponse = {
+        success: true,
+        message: loginData.message || 'Login exitoso',
+        token: loginData.token,
+        usuario: usuarioNormalizado,
+        session_id: loginData.session_id || '',
+        expires_in: loginData.expires_in || 86400
+      };
+      
+      return loginResponse;
     } catch (error: any) {
-      console.error('Error en login:', error);
       throw new Error(error.message || 'Error al iniciar sesión. Verifica tus credenciales.');
     }
   }
@@ -111,16 +143,49 @@ class AuthService {
   getCurrentUser(): User | null {
     try {
       const userData = localStorage.getItem(APP_CONFIG.AUTH.USER_KEY);
-      return userData ? JSON.parse(userData) : null;
+      if (!userData) {
+        return null;
+      }
+      
+      // Limpiar datos inválidos
+      const cleanedData = userData.trim();
+      if (!cleanedData || cleanedData === 'undefined' || cleanedData === 'null') {
+        localStorage.removeItem(APP_CONFIG.AUTH.USER_KEY);
+        return null;
+      }
+      
+      const parsed = JSON.parse(cleanedData);
+      
+      // Validar que tenga los campos mínimos
+      if (!parsed || !parsed.rol) {
+        localStorage.removeItem(APP_CONFIG.AUTH.USER_KEY);
+        return null;
+      }
+      
+      // Normalizar id_usuario
+      if (parsed.id_usuario === undefined && parsed.id !== undefined) {
+        parsed.id_usuario = parsed.id;
+      }
+      
+      return parsed;
     } catch (error) {
       console.error('Error obteniendo usuario actual:', error);
+      // Limpiar datos corruptos
+      localStorage.removeItem(APP_CONFIG.AUTH.USER_KEY);
       return null;
     }
   }
 
   // Guardar datos del usuario
   private saveUserData(user: User): void {
-    localStorage.setItem(APP_CONFIG.AUTH.USER_KEY, JSON.stringify(user));
+    // Normalizar el usuario antes de guardarlo
+    const usuarioNormalizado = {
+      ...user,
+      id_usuario: user.id_usuario || user.id || 0,
+      id: user.id_usuario || user.id || 0
+    };
+    console.log('Guardando usuario en localStorage:', usuarioNormalizado);
+    localStorage.setItem(APP_CONFIG.AUTH.USER_KEY, JSON.stringify(usuarioNormalizado));
   }
 
   // Guardar datos de sesión
@@ -167,7 +232,7 @@ class AuthService {
   // Obtener ID del usuario actual
   getCurrentUserId(): number | null {
     const user = this.getCurrentUser();
-    return user?.id || null;
+    return user?.id_usuario || user?.id || null;
   }
 
   // Verificar si el token está próximo a expirar

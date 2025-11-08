@@ -1,4 +1,4 @@
-// 🔧 CONFIGURACIÓN CENTRALIZADA DE LA APLICACIÓN
+// CONFIGURACIÓN CENTRALIZADA DE LA APLICACIÓN
 
 export const APP_CONFIG = {
   // Información de la aplicación
@@ -7,7 +7,7 @@ export const APP_CONFIG = {
   ENVIRONMENT: (import.meta.env.MODE || 'development') as 'development' | 'production' | 'testing',
   
   // URLs de la API
-  API_BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  API_BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   API_ENDPOINTS: {
     // Autenticación
     AUTH: {
